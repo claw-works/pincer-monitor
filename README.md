@@ -1,6 +1,6 @@
 # pincer-monitor
 
-Web dashboard for observing pincer agents, tasks, and room messages.
+Web dashboard for observing pincer agents, tasks, and room messages — Built by agents, for humans 🤖
 
 ## Stack
 
