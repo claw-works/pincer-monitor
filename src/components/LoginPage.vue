@@ -5,11 +5,13 @@
       <div class="flex flex-col items-center mb-8">
         <span class="text-4xl mb-3">🦀</span>
         <h1 class="text-2xl font-bold text-gray-800">Pincer Monitor</h1>
-        <p class="text-sm text-gray-500 mt-1">连接到你的 Pincer Hub</p>
+        <p class="text-sm text-gray-500 mt-1">
+          {{ step === 'connect' ? '连接到你的 Pincer Hub' : '选择监控的 Room' }}
+        </p>
       </div>
 
-      <!-- Form -->
-      <form @submit.prevent="handleSubmit" class="space-y-5">
+      <!-- Step 1: Connect -->
+      <form v-if="step === 'connect'" @submit.prevent="handleConnect" class="space-y-5">
         <!-- Pincer URL -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -38,27 +40,11 @@
           />
         </div>
 
-        <!-- Room ID -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Room ID
-            <span class="text-gray-400 font-normal">(可选)</span>
-          </label>
-          <input
-            v-model="form.roomId"
-            type="text"
-            placeholder="user:xxxx:default"
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-          />
-          <p class="text-xs text-gray-400 mt-1">不填则不显示群聊消息流</p>
-        </div>
-
         <!-- Error -->
         <p v-if="error" class="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">
           ⚠ {{ error }}
         </p>
 
-        <!-- Submit -->
         <button
           type="submit"
           :disabled="loading"
@@ -68,7 +54,33 @@
         </button>
       </form>
 
-      <!-- Footer note -->
+      <!-- Step 2: Select Room -->
+      <div v-else-if="step === 'room'" class="space-y-4">
+        <div v-if="rooms.length === 0" class="text-center text-gray-500 text-sm py-4">
+          没有找到任何 Room
+        </div>
+
+        <div v-else class="space-y-2">
+          <button
+            v-for="room in rooms"
+            :key="room.id"
+            @click="handleSelectRoom(room.id)"
+            class="w-full text-left border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 rounded-lg px-4 py-3 transition group"
+          >
+            <div class="font-medium text-gray-800 group-hover:text-indigo-700">{{ room.name }}</div>
+            <div class="text-xs text-gray-400 font-mono mt-0.5 truncate">{{ room.id }}</div>
+          </button>
+        </div>
+
+        <button
+          @click="step = 'connect'; error = ''"
+          class="w-full text-sm text-gray-400 hover:text-gray-600 py-1 transition"
+        >
+          ← 返回重新连接
+        </button>
+      </div>
+
+      <!-- Footer -->
       <p class="text-xs text-center text-gray-400 mt-6">
         配置保存在浏览器 localStorage，不会上传
       </p>
@@ -78,36 +90,53 @@
 
 <script setup>
 import { ref } from 'vue'
-import { saveConfig, getPincerBase, getApiKey, getRoomId } from '../config'
-import { fetchAgents } from '../api'
+import { saveConnection, saveRoomId, getPincerBase, getApiKey, BUILD_TIME_BASE } from '../config'
+import { fetchAgents, fetchRooms } from '../api'
 
 const emit = defineEmits(['logged-in'])
 
+// Pre-fill URL: existing localStorage value or VITE_PINCER_BASE
 const form = ref({
-  url: getPincerBase(),
+  url: getPincerBase() || BUILD_TIME_BASE,
   apiKey: getApiKey(),
-  roomId: getRoomId(),
 })
 
+const step = ref('connect')
+const rooms = ref([])
 const loading = ref(false)
 const error = ref('')
 
-async function handleSubmit() {
+async function handleConnect() {
   error.value = ''
   loading.value = true
 
   try {
-    // Save first so getClient() uses the new values
-    saveConfig({ url: form.value.url, apiKey: form.value.apiKey, roomId: form.value.roomId })
+    // Persist credentials so getClient() picks them up
+    saveConnection({ url: form.value.url, apiKey: form.value.apiKey })
 
-    // Test connection
+    // Verify connection
     await fetchAgents()
 
-    emit('logged-in')
+    // Fetch rooms for next step
+    const data = await fetchRooms()
+    rooms.value = Array.isArray(data) ? data : (data.rooms || [])
+
+    // If only one room, auto-select it
+    if (rooms.value.length === 1) {
+      handleSelectRoom(rooms.value[0].id)
+      return
+    }
+
+    step.value = 'room'
   } catch (e) {
     error.value = `连接失败：${e.message}。请检查 URL 和 API Key 是否正确。`
   } finally {
     loading.value = false
   }
+}
+
+function handleSelectRoom(roomId) {
+  saveRoomId(roomId)
+  emit('logged-in')
 }
 </script>

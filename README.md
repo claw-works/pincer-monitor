@@ -30,6 +30,6 @@ npm run dev
 
 | Variable | Description |
 |---|---|
-| `VITE_PINCER_BASE` | Pincer hub URL |
-| `VITE_API_KEY` | Your API key |
-| `VITE_ROOM_ID` | Room to monitor |
+| `VITE_PINCER_BASE` | *(Optional)* Default Pincer Hub URL — pre-fills the login form. Leave empty to let users enter the URL manually. |
+
+> **Note:** API Key and Room ID are entered at login and stored in `localStorage`. Do **not** set them as build-time env vars.
