@@ -7,8 +7,8 @@
         :key="msg.id"
         class="text-sm"
       >
-        <span class="text-xs text-indigo-400 font-mono mr-1">
-          {{ shortId(msg.sender_agent_id) }}
+        <span class="text-xs text-indigo-400 font-semibold mr-1">
+          {{ senderName(msg.sender_agent_id) }}
         </span>
         <span class="text-gray-500 text-xs mr-2">{{ formatTime(msg.created_at) }}</span>
         <span class="text-gray-800 whitespace-pre-wrap">{{ msg.content }}</span>
@@ -29,6 +29,15 @@ const sorted = computed(() =>
   [...store.messages].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
 )
 
+// Build agent id → name map from agents store
+const agentNameMap = computed(() => {
+  const map = {}
+  for (const agent of store.agents) {
+    if (agent.id && agent.name) map[agent.id] = agent.name
+  }
+  return map
+})
+
 watch(() => store.messages.length, async () => {
   await nextTick()
   if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
@@ -38,8 +47,8 @@ function formatTime(ts) {
   return new Date(ts).toLocaleTimeString()
 }
 
-function shortId(id) {
+function senderName(id) {
   if (!id) return 'system'
-  return id.slice(0, 8)
+  return agentNameMap.value[id] || id.slice(0, 8)
 }
 </script>

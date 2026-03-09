@@ -7,4 +7,12 @@ export default defineConfig({
     vue(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: process.env.VITE_PINCER_BASE || 'http://10.0.1.10:8080',
+        changeOrigin: true,
+      },
+    },
+  },
 })
