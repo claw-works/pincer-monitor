@@ -35,19 +35,18 @@
           <!-- Time only for mine -->
           <div v-else class="text-xs text-gray-400 mb-1">{{ formatTime(msg.created_at) }}</div>
 
-          <!-- Content -->
+          <!-- Content — markdown rendered -->
           <div
             :class="[
-              'px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words leading-relaxed',
+              'px-3 py-2 rounded-2xl text-sm break-words leading-relaxed prose prose-sm max-w-none',
               isMine(msg)
-                ? 'bg-indigo-600 text-white rounded-br-sm'
+                ? 'bg-indigo-600 text-white rounded-br-sm prose-invert'
                 : isSystem(msg)
-                  ? 'bg-gray-100 text-gray-500 italic text-xs rounded-bl-sm'
+                  ? 'bg-gray-100 text-gray-500 italic rounded-bl-sm'
                   : 'bg-gray-100 text-gray-800 rounded-bl-sm',
             ]"
-          >
-            {{ msg.content }}
-          </div>
+            v-html="renderMd(msg.content)"
+          />
         </div>
       </div>
     </div>
@@ -56,7 +55,29 @@
 
 <script setup>
 import { computed, ref, watch, nextTick } from 'vue'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github.css'
 import { usePincerStore } from '../stores/pincer'
+
+// Configure marked with syntax highlighting
+marked.setOptions({
+  breaks: true,       // \n → <br>
+  gfm: true,
+  highlight(code, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      return hljs.highlight(code, { language: lang }).value
+    }
+    return hljs.highlightAuto(code).value
+  },
+})
+
+function renderMd(text) {
+  if (!text) return ''
+  const raw = marked.parse(text)
+  return DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } })
+}
 
 const store = usePincerStore()
 const scrollEl = ref(null)
