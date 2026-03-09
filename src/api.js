@@ -1,12 +1,15 @@
 import axios from 'axios'
-import { PINCER_BASE, API_KEY } from './config'
+import { getPincerBase, getApiKey } from './config'
 
-const client = axios.create({
-  baseURL: PINCER_BASE,
-  headers: { 'X-API-Key': API_KEY },
-})
+function getClient() {
+  return axios.create({
+    baseURL: getPincerBase(),
+    headers: { 'X-API-Key': getApiKey() },
+  })
+}
 
-export const fetchAgents = () => client.get('/api/v1/agents').then(r => r.data)
-export const fetchTasks = (status = 'active') => client.get('/api/v1/tasks', { params: { status } }).then(r => r.data)
+export const fetchAgents = () => getClient().get('/api/v1/agents').then(r => r.data)
+export const fetchTasks = (status = 'active') =>
+  getClient().get('/api/v1/tasks', { params: { status } }).then(r => r.data)
 export const fetchMessages = (roomId, limit = 30) =>
-  client.get(`/api/v1/rooms/${roomId}/messages`, { params: { limit } }).then(r => r.data)
+  getClient().get(`/api/v1/rooms/${roomId}/messages`, { params: { limit } }).then(r => r.data)

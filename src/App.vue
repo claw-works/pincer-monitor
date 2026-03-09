@@ -1,5 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gray-100 text-gray-900">
+  <!-- Login page if not configured -->
+  <LoginPage v-if="!configured" @logged-in="onLoggedIn" />
+
+  <!-- Main dashboard -->
+  <div v-else class="min-h-screen bg-gray-100 text-gray-900">
     <!-- Header -->
     <header class="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-2">
@@ -14,6 +18,13 @@
           class="text-xs bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-lg transition"
         >
           Refresh
+        </button>
+        <button
+          @click="logout"
+          class="text-xs text-gray-400 hover:text-red-500 transition"
+          title="退出登录"
+        >
+          ⎋ 退出
         </button>
       </div>
     </header>
@@ -47,13 +58,30 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { usePincerStore } from './stores/pincer'
+import { isConfigured, clearConfig } from './config'
 import AgentCards from './components/AgentCards.vue'
 import MessageFeed from './components/MessageFeed.vue'
 import TaskBoard from './components/TaskBoard.vue'
+import LoginPage from './components/LoginPage.vue'
 
 const store = usePincerStore()
-onMounted(() => store.startPolling())
+const configured = ref(isConfigured())
+
+function onLoggedIn() {
+  configured.value = true
+  store.startPolling()
+}
+
+function logout() {
+  store.stopPolling()
+  clearConfig()
+  configured.value = false
+}
+
+onMounted(() => {
+  if (configured.value) store.startPolling()
+})
 onUnmounted(() => store.stopPolling())
 </script>

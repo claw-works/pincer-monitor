@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { fetchAgents, fetchTasks, fetchMessages } from '../api'
-import { ROOM_ID, POLL_INTERVAL } from '../config'
+import { getRoomId, POLL_INTERVAL } from '../config'
 
 export const usePincerStore = defineStore('pincer', () => {
   const agents = ref([])
@@ -16,7 +16,7 @@ export const usePincerStore = defineStore('pincer', () => {
       const [a, t, m] = await Promise.all([
         fetchAgents(),
         fetchTasks(),
-        ROOM_ID ? fetchMessages(ROOM_ID) : Promise.resolve([]),
+        getRoomId() ? fetchMessages(getRoomId()) : Promise.resolve([]),
       ])
       agents.value = Array.isArray(a) ? a : (a.agents || [])
       tasks.value = Array.isArray(t) ? t : (t.tasks || [])

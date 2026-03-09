@@ -1,13 +1,30 @@
-// pincer API config
-export const PINCER_BASE = import.meta.env.VITE_PINCER_BASE || 'http://10.0.1.10:8080'
-export const API_KEY = import.meta.env.VITE_API_KEY || ''
-export const ROOM_ID = import.meta.env.VITE_ROOM_ID || ''
-export const POLL_INTERVAL = 5000 // ms
+// pincer API config — reads from localStorage first, falls back to env vars
+export function getPincerBase() {
+  return localStorage.getItem('pincer_url') || import.meta.env.VITE_PINCER_BASE || 'http://localhost:8080'
+}
 
-// Startup check: warn if required config is missing
-if (!API_KEY) {
-  console.warn('[pincer-monitor] ⚠️ VITE_API_KEY is not set — API requests will likely return 401')
+export function getApiKey() {
+  return localStorage.getItem('pincer_api_key') || import.meta.env.VITE_API_KEY || ''
 }
-if (!ROOM_ID) {
-  console.warn('[pincer-monitor] ⚠️ VITE_ROOM_ID is not set — message feed will be empty')
+
+export function getRoomId() {
+  return localStorage.getItem('pincer_room_id') || import.meta.env.VITE_ROOM_ID || ''
 }
+
+export function isConfigured() {
+  return !!(getApiKey())
+}
+
+export function saveConfig({ url, apiKey, roomId }) {
+  localStorage.setItem('pincer_url', url)
+  localStorage.setItem('pincer_api_key', apiKey)
+  if (roomId) localStorage.setItem('pincer_room_id', roomId)
+}
+
+export function clearConfig() {
+  localStorage.removeItem('pincer_url')
+  localStorage.removeItem('pincer_api_key')
+  localStorage.removeItem('pincer_room_id')
+}
+
+export const POLL_INTERVAL = 5000 // ms
