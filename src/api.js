@@ -17,3 +17,7 @@ export const fetchRooms = () => getClient().get('/api/v1/rooms').then(r => r.dat
 export const fetchProjects = () => getClient().get('/api/v1/projects').then(r => r.data)
 export const fetchProjectTasks = (projectId) =>
   getClient().get(`/api/v1/projects/${projectId}/tasks`).then(r => r.data)
+export const createProject = (name) =>
+  getClient().post('/api/v1/projects', { name }).then(r => r.data)
+export const fetchInbox = (agentId) =>
+  getClient().get(`/api/v1/agents/${agentId}/inbox`).then(r => r.data)

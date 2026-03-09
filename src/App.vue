@@ -46,6 +46,17 @@
         <MessageFeed />
       </section>
 
+      <!-- DMs -->
+      <section>
+        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          Private Messages
+          <span class="text-gray-400 font-normal normal-case text-xs ml-1">
+            (点击 Agent 卡片选择 inbox 主体)
+          </span>
+        </h2>
+        <DMView />
+      </section>
+
       <!-- Projects -->
       <section>
         <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
@@ -73,6 +84,7 @@ import AgentCards from './components/AgentCards.vue'
 import MessageFeed from './components/MessageFeed.vue'
 import TaskBoard from './components/TaskBoard.vue'
 import ProjectView from './components/ProjectView.vue'
+import DMView from './components/DMView.vue'
 import LoginPage from './components/LoginPage.vue'
 
 const store = usePincerStore()

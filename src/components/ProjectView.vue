@@ -1,15 +1,36 @@
 <template>
   <div class="space-y-4">
+    <!-- Create project form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <form @submit.prevent="handleCreate" class="flex items-center gap-3">
+        <input
+          v-model="newName"
+          type="text"
+          placeholder="新建项目名称…"
+          required
+          class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+        />
+        <button
+          type="submit"
+          :disabled="creating"
+          class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition whitespace-nowrap"
+        >
+          {{ creating ? '创建中…' : '+ 新建项目' }}
+        </button>
+      </form>
+      <p v-if="createError" class="text-xs text-red-500 mt-2">{{ createError }}</p>
+    </div>
+
     <!-- Loading -->
     <div v-if="loading" class="text-sm text-gray-400">加载中…</div>
 
     <!-- Empty -->
-    <div v-else-if="projects.length === 0" class="text-sm text-gray-400 italic">
+    <div v-else-if="projects.length === 0" class="text-sm text-gray-400 italic px-1">
       暂无项目
     </div>
 
     <!-- Project list -->
-    <div v-else class="space-y-4">
+    <div v-else class="space-y-3">
       <div
         v-for="project in projects"
         :key="project.id"
@@ -24,7 +45,9 @@
             <span class="text-lg">📁</span>
             <div>
               <div class="font-semibold text-gray-800">{{ project.name }}</div>
-              <div class="text-xs text-gray-400 mt-0.5">{{ project.id.slice(0, 8) }}</div>
+              <div class="text-xs text-gray-400 mt-0.5">
+                {{ project.id.slice(0, 8) }} · {{ formatDate(project.created_at) }}
+              </div>
             </div>
           </div>
           <div class="flex items-center gap-2">
@@ -77,7 +100,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { fetchProjects, fetchProjectTasks } from '../api'
+import { fetchProjects, fetchProjectTasks, createProject } from '../api'
 
 const projects = ref([])
 const loading = ref(true)
@@ -86,14 +109,37 @@ const projectTasks = ref({})
 const loadingTasks = ref(new Set())
 const taskCounts = ref({})
 
+const newName = ref('')
+const creating = ref(false)
+const createError = ref('')
+
 onMounted(async () => {
+  await loadProjects()
+})
+
+async function loadProjects() {
+  loading.value = true
   try {
     const data = await fetchProjects()
     projects.value = Array.isArray(data) ? data : (data.projects || [])
   } finally {
     loading.value = false
   }
-})
+}
+
+async function handleCreate() {
+  createError.value = ''
+  creating.value = true
+  try {
+    const proj = await createProject(newName.value.trim())
+    projects.value = [proj, ...projects.value]
+    newName.value = ''
+  } catch (e) {
+    createError.value = `创建失败：${e.message}`
+  } finally {
+    creating.value = false
+  }
+}
 
 async function toggle(id) {
   if (expanded.value.has(id)) {
@@ -101,7 +147,6 @@ async function toggle(id) {
     return
   }
   expanded.value = new Set([...expanded.value, id])
-
   if (projectTasks.value[id] !== undefined) return
 
   loadingTasks.value = new Set([...loadingTasks.value, id])
@@ -115,6 +160,10 @@ async function toggle(id) {
   } finally {
     loadingTasks.value = new Set([...loadingTasks.value].filter(x => x !== id))
   }
+}
+
+function formatDate(ts) {
+  return new Date(ts).toLocaleDateString()
 }
 
 function statusDot(status) {

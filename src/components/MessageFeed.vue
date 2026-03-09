@@ -1,19 +1,55 @@
 <template>
   <div class="bg-white rounded-xl shadow p-4 h-96 flex flex-col">
-    <div class="font-semibold text-gray-700 mb-3">消息流</div>
+    <div class="font-semibold text-gray-700 mb-3 flex items-center justify-between">
+      <span>消息流</span>
+      <span v-if="store.selectedAgentId" class="text-xs text-indigo-500">
+        以 {{ agentName(store.selectedAgentId) }} 视角查看
+      </span>
+      <span v-else class="text-xs text-gray-400">点击 Agent 卡片切换视角</span>
+    </div>
+
     <div class="flex-1 overflow-y-auto space-y-2 pr-1" ref="scrollEl">
+      <div v-if="!sorted.length" class="text-center text-gray-400 py-8 text-sm">No messages</div>
+
       <div
         v-for="msg in sorted"
         :key="msg.id"
-        class="text-sm"
+        :class="['flex items-end gap-2', isMine(msg) ? 'flex-row-reverse' : 'flex-row']"
       >
-        <span class="text-xs text-indigo-400 font-semibold mr-1">
-          {{ senderName(msg.sender_agent_id) }}
-        </span>
-        <span class="text-gray-500 text-xs mr-2">{{ formatTime(msg.created_at) }}</span>
-        <span class="text-gray-800 whitespace-pre-wrap">{{ msg.content }}</span>
+        <!-- Avatar (others only) -->
+        <div
+          v-if="!isMine(msg)"
+          :class="['w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mb-0.5',
+                   avatarColor(msg.sender_agent_id)]"
+        >
+          {{ avatarInitial(msg.sender_agent_id) }}
+        </div>
+
+        <!-- Bubble -->
+        <div :class="['max-w-[72%] flex flex-col', isMine(msg) ? 'items-end' : 'items-start']">
+          <!-- Sender name + time (others only) -->
+          <div v-if="!isMine(msg)" class="flex items-center gap-1.5 mb-1">
+            <span class="text-xs font-semibold text-indigo-600">{{ agentName(msg.sender_agent_id) }}</span>
+            <span class="text-xs text-gray-400">{{ formatTime(msg.created_at) }}</span>
+          </div>
+          <!-- Time only for mine -->
+          <div v-else class="text-xs text-gray-400 mb-1">{{ formatTime(msg.created_at) }}</div>
+
+          <!-- Content -->
+          <div
+            :class="[
+              'px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words leading-relaxed',
+              isMine(msg)
+                ? 'bg-indigo-600 text-white rounded-br-sm'
+                : isSystem(msg)
+                  ? 'bg-gray-100 text-gray-500 italic text-xs rounded-bl-sm'
+                  : 'bg-gray-100 text-gray-800 rounded-bl-sm',
+            ]"
+          >
+            {{ msg.content }}
+          </div>
+        </div>
       </div>
-      <div v-if="!sorted.length" class="text-center text-gray-400 py-8">No messages</div>
     </div>
   </div>
 </template>
@@ -29,7 +65,6 @@ const sorted = computed(() =>
   [...store.messages].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
 )
 
-// Build agent id → name map from agents store
 const agentNameMap = computed(() => {
   const map = {}
   for (const agent of store.agents) {
@@ -43,12 +78,43 @@ watch(() => store.messages.length, async () => {
   if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
 })
 
-function formatTime(ts) {
-  return new Date(ts).toLocaleTimeString()
+function isMine(msg) {
+  return store.selectedAgentId && msg.sender_agent_id === store.selectedAgentId
 }
 
-function senderName(id) {
-  if (!id) return 'system'
+function isSystem(msg) {
+  return !msg.sender_agent_id
+}
+
+function agentName(id) {
+  if (!id) return 'System'
   return agentNameMap.value[id] || id.slice(0, 8)
+}
+
+function avatarInitial(id) {
+  if (!id) return 'S'
+  const name = agentNameMap.value[id]
+  if (name) return name.charAt(0).toUpperCase()
+  return id.slice(0, 1).toUpperCase()
+}
+
+const AVATAR_COLORS = [
+  'bg-pink-400 text-white',
+  'bg-purple-400 text-white',
+  'bg-blue-400 text-white',
+  'bg-teal-400 text-white',
+  'bg-orange-400 text-white',
+  'bg-rose-400 text-white',
+]
+
+function avatarColor(id) {
+  if (!id) return 'bg-gray-300 text-gray-600'
+  let hash = 0
+  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+}
+
+function formatTime(ts) {
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 </script>
