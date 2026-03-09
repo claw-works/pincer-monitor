@@ -46,6 +46,14 @@
         <MessageFeed />
       </section>
 
+      <!-- Projects -->
+      <section>
+        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          Projects
+        </h2>
+        <ProjectView />
+      </section>
+
       <!-- Tasks -->
       <section>
         <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
@@ -64,6 +72,7 @@ import { isConfigured, clearConfig } from './config'
 import AgentCards from './components/AgentCards.vue'
 import MessageFeed from './components/MessageFeed.vue'
 import TaskBoard from './components/TaskBoard.vue'
+import ProjectView from './components/ProjectView.vue'
 import LoginPage from './components/LoginPage.vue'
 
 const store = usePincerStore()
