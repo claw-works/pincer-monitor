@@ -6,13 +6,13 @@
         对话
       </div>
       <div class="flex-1 overflow-y-auto">
-        <div v-if="dmAgents.length === 0" class="text-xs text-gray-400 italic px-4 py-4">
-          暂无私信
+        <div v-if="allConvos.length === 0" class="text-xs text-gray-400 italic px-4 py-4">
+          点击 Agent 卡片上的 💬 开始私信
         </div>
         <button
-          v-for="agentId in dmAgents"
+          v-for="agentId in allConvos"
           :key="agentId"
-          @click="selectedConvo = agentId"
+          @click="selectConvo(agentId)"
           :class="[
             'w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-gray-50 transition',
             selectedConvo === agentId ? 'bg-indigo-50 border-r-2 border-indigo-500' : '',
@@ -43,18 +43,18 @@
           从左侧选择一个 agent 查看对话
         </div>
         <div v-else-if="!convoMsgs.length" class="text-center text-gray-400 text-sm py-8">
-          暂无消息
+          暂无消息，发一条吧 👋
         </div>
         <div
           v-else
           v-for="msg in convoMsgs"
           :key="msg.id"
-          :class="['flex', msg.from_agent_id === store.selectedAgentId ? 'flex-row-reverse' : 'flex-row']"
+          :class="['flex', isMyMsg(msg) ? 'flex-row-reverse' : 'flex-row']"
         >
           <div
             :class="[
-              'max-w-[80%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words',
-              msg.from_agent_id === store.selectedAgentId
+              'max-w-[80%] px-3 py-2 rounded-2xl text-sm break-words',
+              isMyMsg(msg)
                 ? 'bg-indigo-600 text-white rounded-br-sm'
                 : 'bg-gray-100 text-gray-800 rounded-bl-sm',
             ]"
@@ -65,6 +65,24 @@
           </div>
         </div>
       </div>
+
+      <!-- Send input -->
+      <div v-if="selectedConvo && store.humanAgentId" class="border-t border-gray-100 p-3 flex gap-2">
+        <input
+          v-model="dmInput"
+          @keydown.enter.prevent="sendDmMsg"
+          type="text"
+          placeholder="发私信…"
+          class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+        />
+        <button
+          @click="sendDmMsg"
+          :disabled="!dmInput.trim() || dmSending"
+          class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm transition"
+        >
+          {{ dmSending ? '…' : '发送' }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -72,10 +90,18 @@
 <script setup>
 import { computed, ref, watch, nextTick } from 'vue'
 import { usePincerStore } from '../stores/pincer'
+import { sendDM } from '../api'
 
 const store = usePincerStore()
 const selectedConvo = ref(null)
 const convoEl = ref(null)
+const dmInput = ref('')
+const dmSending = ref(false)
+
+// When activeDmAgentId changes (from AgentCards click), open that convo
+watch(() => store.activeDmAgentId, (id) => {
+  if (id) selectedConvo.value = id
+})
 
 const agentNameMap = computed(() => {
   const map = {}
@@ -85,7 +111,12 @@ const agentNameMap = computed(() => {
   return map
 })
 
-const dmAgents = computed(() => Object.keys(store.dms))
+// All convos = inbox keys + activeDmAgentId (even if empty)
+const allConvos = computed(() => {
+  const keys = new Set(Object.keys(store.dms))
+  if (store.activeDmAgentId) keys.add(store.activeDmAgentId)
+  return [...keys]
+})
 
 const convoMsgs = computed(() => {
   if (!selectedConvo.value) return []
@@ -96,6 +127,14 @@ watch(convoMsgs, async () => {
   await nextTick()
   if (convoEl.value) convoEl.value.scrollTop = convoEl.value.scrollHeight
 })
+
+function selectConvo(id) {
+  selectedConvo.value = id
+}
+
+function isMyMsg(msg) {
+  return msg.from_agent_id === store.humanAgentId
+}
 
 function agentName(id) {
   if (!id) return 'Unknown'
@@ -126,5 +165,20 @@ function avatarColor(id) {
 function formatTime(ts) {
   if (!ts) return ''
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+async function sendDmMsg() {
+  const text = dmInput.value.trim()
+  if (!text || !selectedConvo.value || !store.humanAgentId) return
+  dmSending.value = true
+  try {
+    await sendDM(store.humanAgentId, selectedConvo.value, text)
+    store.addOutgoingDM(selectedConvo.value, text)
+    dmInput.value = ''
+  } catch (e) {
+    console.error('DM failed', e)
+  } finally {
+    dmSending.value = false
+  }
 }
 </script>

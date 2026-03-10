@@ -50,6 +50,26 @@
         </div>
       </div>
     </div>
+    <!-- Chat input -->
+    <div v-if="store.humanAgentId" class="mt-3 flex gap-2">
+      <input
+        v-model="inputText"
+        @keydown.enter.prevent="sendMessage"
+        type="text"
+        placeholder="发消息到 Room…"
+        class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+      />
+      <button
+        @click="sendMessage"
+        :disabled="!inputText.trim() || sending"
+        class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm transition"
+      >
+        {{ sending ? '…' : '发送' }}
+      </button>
+    </div>
+    <div v-else class="mt-2 text-xs text-gray-400 text-center italic">
+      登录后可发消息
+    </div>
   </div>
 </template>
 
@@ -60,6 +80,8 @@ import DOMPurify from 'dompurify'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import { usePincerStore } from '../stores/pincer'
+import { sendRoomMessage } from '../api'
+import { getRoomId } from '../config'
 
 // Configure marked with syntax highlighting
 marked.setOptions({
@@ -100,7 +122,8 @@ watch(() => store.messages.length, async () => {
 })
 
 function isMine(msg) {
-  return store.selectedAgentId && msg.sender_agent_id === store.selectedAgentId
+  const myId = store.humanAgentId || store.selectedAgentId
+  return myId && msg.sender_agent_id === myId
 }
 
 function isSystem(msg) {
@@ -137,5 +160,23 @@ function avatarColor(id) {
 
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+const inputText = ref('')
+const sending = ref(false)
+
+async function sendMessage() {
+  const text = inputText.value.trim()
+  if (!text || !store.humanAgentId) return
+  sending.value = true
+  try {
+    await sendRoomMessage(getRoomId(), store.humanAgentId, text)
+    inputText.value = ''
+    await store.refresh()
+  } catch (e) {
+    console.error('send failed', e)
+  } finally {
+    sending.value = false
+  }
 }
 </script>

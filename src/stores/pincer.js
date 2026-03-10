@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { fetchAgents, fetchTasks, fetchMessages, fetchInbox } from '../api'
-import { getRoomId, POLL_INTERVAL } from '../config'
+import { getRoomId, getHumanAgentId, POLL_INTERVAL } from '../config'
 
 export const usePincerStore = defineStore('pincer', () => {
   const agents = ref([])
@@ -9,6 +9,9 @@ export const usePincerStore = defineStore('pincer', () => {
   const messages = ref([])
   const loading = ref(false)
   const error = ref(null)
+
+  // Human agent identity
+  const humanAgentId = ref(getHumanAgentId())
 
   // Selected agent (for bubble view "right side")
   const selectedAgentId = ref(localStorage.getItem('pincer_selected_agent') || '')
@@ -18,12 +21,22 @@ export const usePincerStore = defineStore('pincer', () => {
     localStorage.setItem('pincer_selected_agent', selectedAgentId.value)
   }
 
+  // Active DM target (clicked from AgentCards)
+  const activeDmAgentId = ref(null)
+
+  function openDM(id) {
+    activeDmAgentId.value = activeDmAgentId.value === id ? null : id
+  }
+
   // DM inbox — accumulated across polls, keyed by sender_agent_id
   const dms = ref({}) // { agentId: [msg, ...] }
 
   let timer = null
 
   async function refresh() {
+    // Re-read humanAgentId in case it was just saved
+    humanAgentId.value = getHumanAgentId()
+
     try {
       const roomId = getRoomId()
       const [a, t, m] = await Promise.all([
@@ -36,14 +49,15 @@ export const usePincerStore = defineStore('pincer', () => {
       messages.value = Array.isArray(m) ? m : (m.messages || [])
       error.value = null
 
-      // Poll inbox for selected agent (if any)
-      if (selectedAgentId.value) {
+      // Poll inbox for human agent (if any)
+      const humanId = getHumanAgentId()
+      if (humanId) {
         try {
-          const inbox = await fetchInbox(selectedAgentId.value)
+          const inbox = await fetchInbox(humanId)
           if (Array.isArray(inbox) && inbox.length > 0) {
             accumulateDMs(inbox)
           }
-        } catch (_) { /* inbox poll failures are non-fatal */ }
+        } catch (_) { /* non-fatal */ }
       }
     } catch (e) {
       error.value = e.message
@@ -55,11 +69,25 @@ export const usePincerStore = defineStore('pincer', () => {
     for (const msg of msgs) {
       const key = msg.from_agent_id || msg.sender_agent_id || 'unknown'
       if (!updated[key]) updated[key] = []
-      // Deduplicate by id
       if (!updated[key].find(m => m.id === msg.id)) {
         updated[key] = [...updated[key], msg]
       }
     }
+    dms.value = updated
+  }
+
+  function addOutgoingDM(toAgentId, text) {
+    const humanId = getHumanAgentId()
+    const msg = {
+      id: `local-${Date.now()}`,
+      from_agent_id: humanId,
+      to_agent_id: toAgentId,
+      payload: { from: 'You', text },
+      created_at: new Date().toISOString(),
+    }
+    const updated = { ...dms.value }
+    if (!updated[toAgentId]) updated[toAgentId] = []
+    updated[toAgentId] = [...updated[toAgentId], msg]
     dms.value = updated
   }
 
@@ -74,8 +102,10 @@ export const usePincerStore = defineStore('pincer', () => {
 
   return {
     agents, tasks, messages, loading, error,
+    humanAgentId,
     selectedAgentId, selectAgent,
-    dms,
+    activeDmAgentId, openDM,
+    dms, addOutgoingDM,
     refresh, startPolling, stopPolling,
   }
 })

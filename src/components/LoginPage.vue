@@ -90,8 +90,8 @@
 
 <script setup>
 import { ref } from 'vue'
-import { saveConnection, saveRoomId, getPincerBase, getApiKey, BUILD_TIME_BASE } from '../config'
-import { fetchAgents, fetchRooms } from '../api'
+import { saveConnection, saveRoomId, saveHumanAgentId, getHumanAgentId, getPincerBase, getApiKey, BUILD_TIME_BASE } from '../config'
+import { fetchAgents, fetchRooms, registerHuman } from '../api'
 
 const emit = defineEmits(['logged-in'])
 
@@ -137,6 +137,12 @@ async function handleConnect() {
 
 function handleSelectRoom(roomId) {
   saveRoomId(roomId)
+  // Register human agent if not already done
+  if (!getHumanAgentId()) {
+    registerHuman('You').then(data => {
+      if (data?.id) saveHumanAgentId(data.id)
+    }).catch(() => { /* non-fatal */ })
+  }
   emit('logged-in')
 }
 </script>

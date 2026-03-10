@@ -13,6 +13,14 @@ export function getRoomId() {
   return localStorage.getItem('pincer_room_id') || ''
 }
 
+export function getHumanAgentId() {
+  return localStorage.getItem('pincer_human_agent_id') || ''
+}
+
+export function saveHumanAgentId(id) {
+  localStorage.setItem('pincer_human_agent_id', id)
+}
+
 export function isConfigured() {
   return !!(getApiKey() && getRoomId())
 }
@@ -28,17 +36,11 @@ export function saveRoomId(roomId) {
   localStorage.setItem('pincer_room_id', roomId)
 }
 
-// Legacy: save all at once
-export function saveConfig({ url, apiKey, roomId }) {
-  localStorage.setItem('pincer_url', url)
-  localStorage.setItem('pincer_api_key', apiKey)
-  if (roomId) localStorage.setItem('pincer_room_id', roomId)
-}
-
 export function clearConfig() {
   localStorage.removeItem('pincer_url')
   localStorage.removeItem('pincer_api_key')
   localStorage.removeItem('pincer_room_id')
+  localStorage.removeItem('pincer_human_agent_id')
 }
 
 export const POLL_INTERVAL = 5000 // ms

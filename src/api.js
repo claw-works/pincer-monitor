@@ -21,3 +21,27 @@ export const createProject = (name) =>
   getClient().post('/api/v1/projects', { name }).then(r => r.data)
 export const fetchInbox = (agentId) =>
   getClient().get(`/api/v1/agents/${agentId}/inbox`).then(r => r.data)
+
+// Human identity
+export const registerHuman = (name = 'You') =>
+  getClient().post('/api/v1/agents/register', { name, type: 'human' }).then(r => r.data)
+
+// Send room message as human
+export const sendRoomMessage = (roomId, senderAgentId, content) =>
+  getClient().post(`/api/v1/rooms/${roomId}/messages`, {
+    sender_agent_id: senderAgentId,
+    content,
+  }).then(r => r.data)
+
+// Send DM
+export const sendDM = (fromAgentId, toAgentId, text) =>
+  getClient().post('/api/v1/messages/send', {
+    from_agent_id: fromAgentId,
+    to_agent_id: toAgentId,
+    type: 'agent.message',
+    payload: { from: 'You', text },
+  }).then(r => r.data)
+
+// Create task
+export const createTask = (fields) =>
+  getClient().post('/api/v1/tasks', fields).then(r => r.data)
