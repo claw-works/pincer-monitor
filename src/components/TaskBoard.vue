@@ -104,9 +104,16 @@
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
             >
               <option value="">— 不指派（hub 自动分配）—</option>
-              <option v-for="agent in aiAgents" :key="agent.id" :value="agent.id">
-                {{ agent.name || agent.id.slice(0,8) }}
-              </option>
+              <optgroup label="AI Agents">
+                <option v-for="agent in aiAgents" :key="agent.id" :value="agent.id">
+                  {{ agent.name || agent.id.slice(0,8) }}
+                </option>
+              </optgroup>
+              <optgroup v-if="humanAgents.length" label="人类">
+                <option v-for="agent in humanAgents" :key="agent.id" :value="agent.id">
+                  👤 {{ agent.name || agent.id.slice(0,8) }}
+                </option>
+              </optgroup>
             </select>
           </div>
 
@@ -166,6 +173,10 @@ const form = ref({
 
 const aiAgents = computed(() =>
   store.agents.filter(a => a.type !== 'human' && a.id !== store.humanAgentId)
+)
+
+const humanAgents = computed(() =>
+  store.agents.filter(a => a.type === 'human' || a.id === store.humanAgentId)
 )
 
 function resetForm() {

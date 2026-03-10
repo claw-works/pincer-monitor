@@ -25,6 +25,37 @@
         >
           Refresh
         </button>
+
+        <!-- #18: Identity widget -->
+        <div class="relative">
+          <!-- Avatar (identity set) -->
+          <button
+            v-if="store.humanAgentId"
+            @click="identityOpen = !identityOpen"
+            class="w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center text-sm font-bold hover:bg-indigo-600 transition"
+            :title="humanDisplayName"
+          >
+            {{ humanInitial }}
+          </button>
+
+          <!-- Login button (identity not set) -->
+          <button
+            v-else
+            @click="identityOpen = !identityOpen"
+            class="text-xs border border-indigo-300 text-indigo-600 hover:bg-indigo-50 px-3 py-1 rounded-lg transition"
+          >
+            👤 设置身份
+          </button>
+
+          <!-- Identity dropdown -->
+          <div
+            v-if="identityOpen"
+            class="absolute right-0 top-10 z-50 w-72 bg-white rounded-xl shadow-lg border border-gray-200 p-4"
+          >
+            <ProfileSetup @close="identityOpen = false" />
+          </div>
+        </div>
+
         <button
           @click="logout"
           class="text-xs text-gray-400 hover:text-red-500 transition"
@@ -160,12 +191,14 @@
           <ProfileSetup />
         </section>
 
-        <!-- DMs -->
-        <section v-else-if="active === 'dm'" class="flex-1 overflow-y-auto p-6">
-          <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+        <!-- DMs — fills height -->
+        <section v-else-if="active === 'dm'" class="flex-1 min-h-0 flex flex-col p-6">
+          <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 flex-shrink-0">
             Private Messages
           </h2>
-          <DMView />
+          <div class="flex-1 min-h-0">
+            <DMView class="h-full" />
+          </div>
         </section>
 
       </main>
@@ -194,7 +227,6 @@ const navItems = computed(() => [
   { key: 'tasks',    icon: '📋', label: 'Tasks',    badge: filteredTaskCount.value },
   { key: 'projects', icon: '📁', label: 'Projects' },
   { key: 'dm',       icon: '📩', label: 'DMs' },
-  { key: 'profile',   icon: '👤', label: '身份设置', badge: store.humanAgentId ? undefined : 1 },
 ])
 
 // AI agents only (exclude humans) — for sidebar perspective switcher
@@ -207,6 +239,18 @@ const filteredTaskCount = computed(() => {
   if (!store.selectedAgentId) return store.tasks.length
   return store.tasks.filter(t => t.assigned_agent_id === store.selectedAgentId).length
 })
+
+// #18: identity dropdown
+const identityOpen = ref(false)
+
+const humanDisplayName = computed(() => {
+  const agent = store.agents.find(a => a.id === store.humanAgentId)
+  return agent?.name || store.humanAgentId?.slice(0, 8) || ''
+})
+
+const humanInitial = computed(() =>
+  humanDisplayName.value.charAt(0).toUpperCase() || '?'
+)
 
 function onLoggedIn() {
   configured.value = true

@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-xl shadow flex" style="height: 480px;">
+  <div class="bg-white rounded-xl shadow flex h-full">
     <!-- Left: recipient list -->
     <div class="w-48 border-r border-gray-100 flex flex-col flex-shrink-0">
       <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b border-gray-100 flex-shrink-0">
@@ -79,22 +79,27 @@
         </div>
       </div>
 
-      <!-- Send input -->
-      <div v-if="selectedConvo && currentSenderId" class="border-t border-gray-100 p-3 flex gap-2 flex-shrink-0">
-        <input
-          v-model="dmInput"
-          @keydown.enter.prevent="sendDmMsg"
-          type="text"
-          placeholder="发私信…"
-          class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-        />
-        <button
-          @click="sendDmMsg"
-          :disabled="!dmInput.trim() || dmSending"
-          class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm transition"
-        >
-          {{ dmSending ? '…' : '发送' }}
-        </button>
+      <!-- Send input — only human senders can type -->
+      <div v-if="selectedConvo && currentSenderId" class="border-t border-gray-100 p-3 flex-shrink-0">
+        <div v-if="!isHumanSender" class="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 text-center">
+          ⚠ 只有人类身份可以发送私信。请在右上角设置身份。
+        </div>
+        <div v-else class="flex gap-2">
+          <input
+            v-model="dmInput"
+            @keydown.enter.prevent="sendDmMsg"
+            type="text"
+            placeholder="发私信…"
+            class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+          />
+          <button
+            @click="sendDmMsg"
+            :disabled="!dmInput.trim() || dmSending"
+            class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm transition"
+          >
+            {{ dmSending ? '…' : '发送' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -117,6 +122,17 @@ const localMsgs = ref([])             // merged conversation messages
 const currentSenderId = computed(() =>
   store.selectedAgentId || store.humanAgentId || null
 )
+
+// #16: only human senders can send DMs
+const isHumanSender = computed(() => {
+  const id = currentSenderId.value
+  if (!id) return false
+  // humanAgentId is always human
+  if (id === store.humanAgentId) return true
+  // check agent type in agent list
+  const agent = store.agents.find(a => a.id === id)
+  return agent?.type === 'human'
+})
 
 // Show all agents except the current perspective agent
 const otherAgents = computed(() => {
