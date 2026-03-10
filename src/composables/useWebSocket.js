@@ -51,7 +51,7 @@ export function useWebSocket(onEvent, { onReconnect } = {}) {
       if (hasConnectedBefore) {
         // Reconnect: notify store to catch up on missed messages
         console.log('[WS] Reconnected — triggering catch-up')
-        onReconnect && onReconnect()
+        onReconnect?.()
       }
       hasConnectedBefore = true
     }

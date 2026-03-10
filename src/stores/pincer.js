@@ -81,6 +81,8 @@ export const usePincerStore = defineStore('pincer', () => {
         messages.value = fetched
       }
       // Update lastMessageAt to the most recent message timestamp
+      // Note: messages are sorted by created_at above, so last element = latest
+      // Server returns messages in ascending order, so this is safe
       if (messages.value.length > 0) {
         const latest = messages.value[messages.value.length - 1].created_at
         if (!lastMessageAt.value || latest > lastMessageAt.value) {
