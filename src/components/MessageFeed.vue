@@ -14,7 +14,7 @@
       <div
         v-for="msg in sorted"
         :key="msg.id"
-        :class="['flex items-end gap-2', isMine(msg) ? 'flex-row-reverse' : 'flex-row']"
+        :class="['flex items-start gap-2', isMine(msg) ? 'flex-row-reverse' : 'flex-row']"
       >
         <!-- Avatar (others only) -->
         <div
@@ -67,14 +67,19 @@
         {{ sending ? '…' : '发送' }}
       </button>
     </div>
-    <div v-else class="mt-2 text-xs text-gray-400 text-center italic">
-      登录后可发消息
+    <div v-else class="mt-3">
+      <button
+        @click="$emit('need-profile')"
+        class="w-full text-xs text-indigo-500 hover:text-indigo-700 border border-dashed border-indigo-200 hover:border-indigo-400 rounded-xl py-2 transition"
+      >
+        请先登录人类身份才能发消息 →
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js'
@@ -102,6 +107,7 @@ function renderMd(text) {
   return DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } })
 }
 
+const emit = defineEmits(['need-profile'])
 const store = usePincerStore()
 usePolling(() => store.refreshMessages(), 5000)
 const scrollEl = ref(null)
@@ -118,9 +124,16 @@ const agentNameMap = computed(() => {
   return map
 })
 
+function scrollToBottom() {
+  if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
+}
+onMounted(async () => {
+  await nextTick()
+  scrollToBottom()
+})
 watch(() => store.messages.length, async () => {
   await nextTick()
-  if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
+  scrollToBottom()
 })
 
 function isMine(msg) {

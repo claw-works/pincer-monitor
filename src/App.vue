@@ -129,7 +129,7 @@
             Room Messages
           </h2>
           <div class="flex-1 min-h-0">
-            <MessageFeed class="h-full" />
+            <MessageFeed class="h-full" @need-profile="active = 'profile'" />
           </div>
         </section>
 
@@ -150,6 +150,14 @@
         <!-- Projects + Tasks (two-panel, fill height) -->
         <section v-else-if="active === 'projects'" class="flex-1 min-h-0 flex flex-col">
           <ProjectView class="flex-1 min-h-0" />
+        </section>
+
+        <!-- Profile -->
+        <section v-else-if="active === 'profile'" class="flex-1 overflow-y-auto p-6">
+          <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+            身份设置
+          </h2>
+          <ProfileSetup />
         </section>
 
         <!-- DMs -->
@@ -174,6 +182,7 @@ import MessageFeed from './components/MessageFeed.vue'
 import TaskBoard from './components/TaskBoard.vue'
 import ProjectView from './components/ProjectView.vue'
 import DMView from './components/DMView.vue'
+import ProfileSetup from './components/ProfileSetup.vue'
 import LoginPage from './components/LoginPage.vue'
 
 const store = usePincerStore()
@@ -185,6 +194,7 @@ const navItems = computed(() => [
   { key: 'tasks',    icon: '📋', label: 'Tasks',    badge: filteredTaskCount.value },
   { key: 'projects', icon: '📁', label: 'Projects' },
   { key: 'dm',       icon: '📩', label: 'DMs' },
+  { key: 'profile',   icon: '👤', label: '身份设置', badge: store.humanAgentId ? undefined : 1 },
 ])
 
 // Task count respects current agent filter
