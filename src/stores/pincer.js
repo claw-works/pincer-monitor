@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { fetchAgents, fetchTasks, fetchMessages, fetchInbox } from '../api'
 import { getRoomId, getHumanAgentId, POLL_INTERVAL } from '../config'
 import { useWebSocket } from '../composables/useWebSocket'
+import { useInboxWS } from '../composables/useInboxWS'
 
 export const usePincerStore = defineStore('pincer', () => {
   const agents = ref([])
@@ -241,6 +242,7 @@ export const usePincerStore = defineStore('pincer', () => {
 
   // ── WebSocket lifecycle ───────────────────────────────────────────────────
 
+  // Room WebSocket — real-time room messages
   const { connected: wsStatus, connect: wsConnect, disconnect: wsDisconnect } = useWebSocket(
     handleWsEvent,
     {
@@ -251,9 +253,33 @@ export const usePincerStore = defineStore('pincer', () => {
     }
   )
 
-  // Fallback polling interval (ms) — used when WS is not available
-  // Set to null to disable fallback polling entirely once WS is stable
-  const FALLBACK_INTERVAL = POLL_INTERVAL * 6 // 30s fallback
+  // Inbox WebSocket — real-time DMs for the human user
+  function handleInboxWsMessage(msg) {
+    // hub.Message format: { id, type, from, to, payload, timestamp, ... }
+    const fromId = msg.from || msg.from_agent_id || msg.sender_agent_id || 'unknown'
+    // Normalise to the same shape used by HTTP inbox polling
+    const normalised = {
+      id: msg.id,
+      from_agent_id: fromId,
+      to_agent_id: msg.to || getHumanAgentId(),
+      payload: msg.payload,
+      created_at: msg.timestamp || new Date().toISOString(),
+    }
+    accumulateDMs([normalised])
+  }
+
+  const { connect: inboxWsConnect, disconnect: inboxWsDisconnect } = useInboxWS(
+    handleInboxWsMessage,
+    {
+      onReconnect: () => {
+        // Flush any offline messages that arrived while disconnected
+        refreshDMs()
+      },
+    }
+  )
+
+  // Light fallback: re-sync agents + tasks every 30s (WS doesn't cover these)
+  const FALLBACK_INTERVAL = POLL_INTERVAL * 6 // 30s
 
   let fallbackTimer = null
 
@@ -261,15 +287,24 @@ export const usePincerStore = defineStore('pincer', () => {
     // Initial full data load via HTTP
     refresh()
 
-    // Start WebSocket for real-time updates
+    // Start Room WebSocket for real-time message updates
     wsConnect()
 
-    // Light fallback: re-sync agents list every 30s in case WS misses something
-    fallbackTimer = setInterval(refreshAgents, FALLBACK_INTERVAL)
+    // Start Inbox WebSocket for real-time DMs (only if humanAgentId is set)
+    if (getHumanAgentId()) {
+      inboxWsConnect()
+    }
+
+    // Light fallback: keep agents + tasks fresh
+    fallbackTimer = setInterval(() => {
+      refreshAgents()
+      refreshTasks()
+    }, FALLBACK_INTERVAL)
   }
 
   function stopPolling() {
     wsDisconnect()
+    inboxWsDisconnect()
     if (fallbackTimer) {
       clearInterval(fallbackTimer)
       fallbackTimer = null
@@ -285,5 +320,7 @@ export const usePincerStore = defineStore('pincer', () => {
     dms, addOutgoingDM, mergeDMs,
     refresh, refreshAgents, refreshTasks, refreshMessages, refreshDMs,
     startPolling, stopPolling,
+    // Allow components to connect inbox WS after humanAgentId is set
+    connectInboxWS: inboxWsConnect,
   }
 })

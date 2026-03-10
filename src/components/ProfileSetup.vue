@@ -82,6 +82,8 @@ async function register() {
     saveHumanAgentId(agent.id)
     store.humanAgentId = agent.id
     await store.refreshAgents()
+    // Start inbox WS now that humanAgentId is set
+    store.connectInboxWS()
   } catch (e) {
     error.value = `注册失败：${e.message}`
   } finally {
