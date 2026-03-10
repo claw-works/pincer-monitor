@@ -50,22 +50,44 @@
         </div>
       </div>
     </div>
-    <!-- Chat input -->
-    <div v-if="store.humanAgentId" class="mt-3 flex gap-2">
-      <input
-        v-model="inputText"
-        @keydown.enter.prevent="sendMessage"
-        type="text"
-        placeholder="发消息到 Room…"
-        class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-      />
-      <button
-        @click="sendMessage"
-        :disabled="!inputText.trim() || sending"
-        class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm transition"
+    <!-- Chat input with @mention -->
+    <div v-if="store.humanAgentId" class="mt-3 relative">
+      <!-- @mention dropdown -->
+      <div
+        v-if="mentionList.length"
+        class="absolute bottom-full mb-1 left-0 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden"
       >
-        {{ sending ? '…' : '发送' }}
-      </button>
+        <button
+          v-for="agent in mentionList"
+          :key="agent.id"
+          @mousedown.prevent="insertMention(agent)"
+          class="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-50 text-left text-sm"
+        >
+          <span v-if="agent.type === 'human'" class="text-blue-400 text-xs">👤</span>
+          <span v-else class="text-gray-300 text-xs">🐾</span>
+          <span class="text-gray-800 font-medium">{{ agent.name || agent.id.slice(0, 8) }}</span>
+        </button>
+      </div>
+      <div class="flex gap-2">
+        <input
+          ref="chatInputEl"
+          v-model="inputText"
+          @keydown.enter.prevent="sendMessage"
+          @input="onInput"
+          @keydown.escape="mentionList = []"
+          @keydown.tab.prevent="mentionList.length && insertMention(mentionList[0])"
+          type="text"
+          placeholder="发消息到 Room… (@提及)"
+          class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+        />
+        <button
+          @click="sendMessage"
+          :disabled="!inputText.trim() || sending"
+          class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm transition"
+        >
+          {{ sending ? '…' : '发送' }}
+        </button>
+      </div>
     </div>
     <div v-else class="mt-3">
       <button
@@ -179,11 +201,50 @@ function formatTime(ts) {
 
 const inputText = ref('')
 const sending = ref(false)
+const chatInputEl = ref(null)
+const mentionList = ref([])
+
+// @mention detection
+function onInput(e) {
+  const val = inputText.value
+  const cursor = e.target.selectionStart
+  // Find last '@' before cursor
+  const before = val.slice(0, cursor)
+  const atIdx = before.lastIndexOf('@')
+  if (atIdx === -1) { mentionList.value = []; return }
+  const query = before.slice(atIdx + 1).toLowerCase()
+  // Only show if no space in query (still typing the mention)
+  if (query.includes(' ')) { mentionList.value = []; return }
+  mentionList.value = store.agents
+    .filter(a => (a.name || a.id).toLowerCase().includes(query))
+    .slice(0, 6)
+}
+
+function insertMention(agent) {
+  const name = agent.name || agent.id.slice(0, 8)
+  const val = inputText.value
+  const el = chatInputEl.value
+  const cursor = el ? el.selectionStart : val.length
+  const before = val.slice(0, cursor)
+  const after = val.slice(cursor)
+  const atIdx = before.lastIndexOf('@')
+  inputText.value = before.slice(0, atIdx) + '@' + name + ' ' + after
+  mentionList.value = []
+  // Restore focus + cursor after inserted text
+  nextTick(() => {
+    if (el) {
+      const pos = atIdx + name.length + 2
+      el.focus()
+      el.setSelectionRange(pos, pos)
+    }
+  })
+}
 
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || !store.humanAgentId) return
   sending.value = true
+  mentionList.value = []
   try {
     await sendRoomMessage(getRoomId(), store.humanAgentId, text)
     inputText.value = ''
