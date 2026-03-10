@@ -68,12 +68,12 @@
         <!-- Divider + Agents section (bottom, scrollable) -->
         <div class="border-t border-gray-100 flex flex-col min-h-0 flex-1 overflow-hidden">
           <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide flex-shrink-0">
-            Agents
+            AI Agents
             <span class="normal-case font-normal text-gray-300 ml-1">(点击切换视角)</span>
           </div>
           <div class="overflow-y-auto flex-1 pb-3">
             <button
-              v-for="agent in store.agents"
+              v-for="agent in aiAgents"
               :key="agent.id"
               @click="store.selectAgent(agent.id)"
               :class="[
@@ -196,6 +196,11 @@ const navItems = computed(() => [
   { key: 'dm',       icon: '📩', label: 'DMs' },
   { key: 'profile',   icon: '👤', label: '身份设置', badge: store.humanAgentId ? undefined : 1 },
 ])
+
+// AI agents only (exclude humans) — for sidebar perspective switcher
+const aiAgents = computed(() =>
+  store.agents.filter(a => a.type !== "human")
+)
 
 // Task count respects current agent filter
 const filteredTaskCount = computed(() => {
