@@ -82,6 +82,7 @@ import 'highlight.js/styles/github.css'
 import { usePincerStore } from '../stores/pincer'
 import { sendRoomMessage } from '../api'
 import { getRoomId } from '../config'
+import { usePolling } from '../composables/usePolling'
 
 // Configure marked with syntax highlighting
 marked.setOptions({
@@ -102,6 +103,7 @@ function renderMd(text) {
 }
 
 const store = usePincerStore()
+usePolling(() => store.refreshMessages(), 5000)
 const scrollEl = ref(null)
 
 const sorted = computed(() =>

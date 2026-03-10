@@ -56,8 +56,10 @@
 
 <script setup>
 import { usePincerStore } from '../stores/pincer'
+import { usePolling } from '../composables/usePolling'
 
 const store = usePincerStore()
+usePolling(() => store.refreshAgents(), 10000)
 
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString()

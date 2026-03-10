@@ -34,37 +34,60 @@ export const usePincerStore = defineStore('pincer', () => {
   // DM inbox — accumulated across polls, keyed by sender_agent_id
   const dms = ref({}) // { agentId: [msg, ...] }
 
-  let timer = null
+  // ── Granular refresh methods ──────────────────────────────────────────────
 
-  async function refresh() {
-    // Re-read humanAgentId in case it was just saved
+  async function refreshAgents() {
     humanAgentId.value = getHumanAgentId()
-
     try {
-      const roomId = getRoomId()
-      const [a, t, m] = await Promise.all([
-        fetchAgents(),
-        fetchTasks(),
-        roomId ? fetchMessages(roomId) : Promise.resolve([]),
-      ])
+      const a = await fetchAgents()
       agents.value = Array.isArray(a) ? a : (a.agents || [])
-      tasks.value = Array.isArray(t) ? t : (t.tasks || [])
-      messages.value = Array.isArray(m) ? m : (m.messages || [])
       error.value = null
-
-      // Poll inbox for human agent (if any)
-      const humanId = getHumanAgentId()
-      if (humanId) {
-        try {
-          const inbox = await fetchInbox(humanId)
-          if (Array.isArray(inbox) && inbox.length > 0) {
-            accumulateDMs(inbox)
-          }
-        } catch (_) { /* non-fatal */ }
-      }
     } catch (e) {
       error.value = e.message
     }
+  }
+
+  async function refreshTasks() {
+    try {
+      const t = await fetchTasks()
+      tasks.value = Array.isArray(t) ? t : (t.tasks || [])
+      error.value = null
+    } catch (e) {
+      error.value = e.message
+    }
+  }
+
+  async function refreshMessages() {
+    const roomId = getRoomId()
+    if (!roomId) return
+    try {
+      const m = await fetchMessages(roomId)
+      messages.value = Array.isArray(m) ? m : (m.messages || [])
+      error.value = null
+    } catch (e) {
+      error.value = e.message
+    }
+  }
+
+  async function refreshDMs() {
+    const humanId = getHumanAgentId()
+    if (!humanId) return
+    try {
+      const inbox = await fetchInbox(humanId)
+      if (Array.isArray(inbox) && inbox.length > 0) {
+        accumulateDMs(inbox)
+      }
+    } catch (_) { /* non-fatal */ }
+  }
+
+  // Combined refresh (kept for manual "Refresh" button)
+  async function refresh() {
+    await Promise.allSettled([
+      refreshAgents(),
+      refreshTasks(),
+      refreshMessages(),
+      refreshDMs(),
+    ])
   }
 
   function accumulateDMs(msgs) {
@@ -94,9 +117,12 @@ export const usePincerStore = defineStore('pincer', () => {
     dms.value = updated
   }
 
+  // Legacy: global polling (used by App.vue for initial load + agents sidebar)
+  let timer = null
+
   function startPolling() {
-    refresh()
-    timer = setInterval(refresh, POLL_INTERVAL)
+    refreshAgents()
+    timer = setInterval(refreshAgents, POLL_INTERVAL)
   }
 
   function stopPolling() {
@@ -109,6 +135,7 @@ export const usePincerStore = defineStore('pincer', () => {
     selectedAgentId, selectedAgent, selectAgent,
     activeDmAgentId, openDM,
     dms, addOutgoingDM,
-    refresh, startPolling, stopPolling,
+    refresh, refreshAgents, refreshTasks, refreshMessages, refreshDMs,
+    startPolling, stopPolling,
   }
 })

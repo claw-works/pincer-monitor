@@ -142,8 +142,10 @@
 import { ref, computed } from 'vue'
 import { usePincerStore } from '../stores/pincer'
 import { createTask } from '../api'
+import { usePolling } from '../composables/usePolling'
 
 const store = usePincerStore()
+usePolling(() => store.refreshTasks(), 5000)
 
 // Filter tasks by current agent perspective
 const visibleTasks = computed(() => {
