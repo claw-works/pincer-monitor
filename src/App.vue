@@ -99,12 +99,12 @@
         <!-- Divider + Agents section (bottom, scrollable) -->
         <div class="border-t border-gray-100 flex flex-col min-h-0 flex-1 overflow-hidden">
           <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide flex-shrink-0">
-            AI Agents
+            Agents
             <span class="normal-case font-normal text-gray-300 ml-1">(点击切换视角)</span>
           </div>
           <div class="overflow-y-auto flex-1 pb-3">
             <button
-              v-for="agent in aiAgents"
+              v-for="agent in sidebarAgents"
               :key="agent.id"
               @click="store.selectAgent(agent.id)"
               :class="[
@@ -120,8 +120,9 @@
                 :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300'"
               ></span>
               <div class="min-w-0 flex-1">
-                <div class="text-xs font-medium text-gray-700 truncate">
-                  {{ agent.name || agent.id.slice(0, 8) }}
+                <div class="text-xs font-medium text-gray-700 truncate flex items-center gap-1">
+                  <span>{{ agent.name || agent.id.slice(0, 8) }}</span>
+                  <span v-if="agent.type === 'human'" class="text-blue-300 text-xs">👤</span>
                 </div>
               </div>
               <!-- Selected indicator -->
@@ -233,6 +234,13 @@ const navItems = computed(() => [
 const aiAgents = computed(() =>
   store.agents.filter(a => a.type !== "human")
 )
+
+// All agents: humans first, then AI — for sidebar perspective switcher
+const sidebarAgents = computed(() => {
+  const humans = store.agents.filter(a => a.type === 'human')
+  const ais = store.agents.filter(a => a.type !== 'human')
+  return [...humans, ...ais]
+})
 
 // Task count respects current agent filter
 const filteredTaskCount = computed(() => {
