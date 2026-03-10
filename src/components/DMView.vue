@@ -1,90 +1,136 @@
 <template>
-  <div class="bg-white rounded-xl shadow flex h-full">
-    <!-- Left: recipient list -->
-    <div class="w-48 border-r border-gray-100 flex flex-col flex-shrink-0">
-      <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b border-gray-100 flex-shrink-0">
-        私信
+  <div class="bg-white rounded-xl shadow flex h-full overflow-hidden">
+
+    <!-- Left: 伙伴列表 -->
+    <div class="w-52 border-r border-gray-100 flex flex-col flex-shrink-0">
+      <div class="px-4 py-3 border-b border-gray-100 flex-shrink-0">
+        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide">伙伴列表</div>
       </div>
       <div class="flex-1 overflow-y-auto">
-        <div v-if="otherAgents.length === 0" class="text-xs text-gray-400 italic px-4 py-4">
-          暂无其他 Agent
+        <div v-if="sortedPartners.length === 0" class="text-xs text-gray-400 italic px-4 py-4">
+          暂无 Agent
         </div>
-        <button
-          v-for="agent in otherAgents"
-          :key="agent.id"
-          @click="selectRecipient(agent.id)"
-          :class="[
-            'w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-gray-50 transition',
-            selectedConvo === agent.id ? 'bg-indigo-50 border-r-2 border-indigo-500' : '',
-          ]"
-        >
-          <div
-            :class="['w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0',
-                     avatarColor(agent.id)]"
+
+        <!-- Humans first -->
+        <template v-for="agent in sortedPartners" :key="agent.id">
+          <button
+            @click="selectedPartnerId = agent.id"
+            :class="[
+              'w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-gray-50 transition',
+              selectedPartnerId === agent.id ? 'bg-indigo-50 border-r-2 border-indigo-500' : '',
+            ]"
           >
-            {{ (agent.name || agent.id).charAt(0).toUpperCase() }}
-          </div>
-          <div class="min-w-0 flex-1">
-            <div class="text-sm font-medium text-gray-800 truncate">
-              {{ agent.name || agent.id.slice(0, 8) }}
+            <div
+              :class="['w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0',
+                       avatarColor(agent.id)]"
+            >
+              {{ (agent.name || agent.id).charAt(0).toUpperCase() }}
             </div>
-          </div>
-        </button>
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-medium text-gray-800 truncate flex items-center gap-1">
+                <span>{{ agent.name || agent.id.slice(0, 8) }}</span>
+                <span v-if="agent.type === 'human'" class="text-xs text-blue-400">👤</span>
+                <span v-else class="text-xs text-gray-300">🐾</span>
+              </div>
+              <div class="text-xs mt-0.5 flex items-center gap-1">
+                <span
+                  :class="agent.status === 'online' ? 'text-green-500' : 'text-gray-300'"
+                >●</span>
+                <span class="text-gray-400">{{ agent.status || 'offline' }}</span>
+              </div>
+            </div>
+          </button>
+        </template>
       </div>
     </div>
 
-    <!-- Right: conversation -->
+    <!-- Right: 视角 + 消息 -->
     <div class="flex-1 flex flex-col min-w-0">
-      <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b border-gray-100 flex-shrink-0 flex items-center justify-between">
-        <span>{{ selectedConvo ? agentName(selectedConvo) : '选择对话' }}</span>
-        <span v-if="loadingHistory" class="text-gray-300 font-normal normal-case">加载中…</span>
+
+      <!-- Top: 我是谁（发送人选择） -->
+      <div class="border-b border-gray-100 px-4 py-3 flex items-center gap-3 flex-shrink-0">
+        <span class="text-xs text-gray-400 whitespace-nowrap">我是：</span>
+        <select
+          v-model="myIdentityId"
+          class="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition bg-white"
+        >
+          <option value="">— 选择身份 —</option>
+          <optgroup label="👤 人类">
+            <option v-for="h in humanAgents" :key="h.id" :value="h.id">
+              {{ h.name || h.id.slice(0, 8) }}
+            </option>
+          </optgroup>
+          <optgroup label="🐾 AI Agent">
+            <option v-for="a in aiAgents" :key="a.id" :value="a.id">
+              {{ a.name || a.id.slice(0, 8) }}
+            </option>
+          </optgroup>
+        </select>
+        <span
+          v-if="myIdentityId"
+          :class="isHumanIdentity ? 'text-green-600 bg-green-50' : 'text-amber-600 bg-amber-50'"
+          class="text-xs px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
+        >
+          {{ isHumanIdentity ? '✓ 可发送' : '只读' }}
+        </span>
       </div>
 
+      <!-- Partner header -->
+      <div class="px-4 py-2.5 border-b border-gray-50 flex items-center gap-2 flex-shrink-0 bg-gray-50">
+        <span class="text-xs text-gray-400">与：</span>
+        <span class="text-sm font-medium text-gray-700">
+          {{ selectedPartnerId ? partnerName(selectedPartnerId) : '— 从左侧选择对话对象 —' }}
+        </span>
+        <span v-if="loadingHistory" class="text-xs text-gray-400 ml-auto">加载中…</span>
+      </div>
+
+      <!-- Messages -->
       <div class="flex-1 overflow-y-auto p-4 space-y-3" ref="convoEl">
-        <!-- No perspective -->
-        <div v-if="!currentSenderId" class="text-center text-gray-400 text-sm py-8">
-          请先在左侧侧边栏选择视角（Agent）
+        <div v-if="!myIdentityId" class="text-center text-gray-400 text-sm py-12">
+          请先选择「我是谁」
         </div>
-        <!-- Has perspective, no recipient -->
-        <div v-else-if="!selectedConvo" class="text-center text-gray-400 text-sm py-8">
+        <div v-else-if="!selectedPartnerId" class="text-center text-gray-400 text-sm py-12">
           从左侧选择对话对象
         </div>
-        <!-- Loading -->
-        <div v-else-if="loadingHistory" class="text-center text-gray-400 text-sm py-8">
+        <div v-else-if="loadingHistory" class="text-center text-gray-400 text-sm py-12">
           加载消息中…
         </div>
-        <!-- Empty -->
-        <div v-else-if="!convoMsgs.length" class="text-center text-gray-400 text-sm py-8">
-          暂无消息，发一条吧 👋
+        <div v-else-if="!convoMsgs.length" class="text-center text-gray-400 text-sm py-12">
+          暂无消息 👋
         </div>
-        <!-- Messages -->
         <div
           v-else
           v-for="msg in convoMsgs"
           :key="msg.id"
-          :class="['flex', isMyMsg(msg) ? 'flex-row-reverse' : 'flex-row']"
+          :class="['flex items-end gap-2', isMyMsg(msg) ? 'flex-row-reverse' : 'flex-row']"
         >
           <div
             :class="[
-              'max-w-[80%] px-3 py-2 rounded-2xl text-sm break-words',
+              'max-w-[78%] px-3 py-2 rounded-2xl text-sm break-words leading-relaxed',
               isMyMsg(msg)
                 ? 'bg-indigo-600 text-white rounded-br-sm'
                 : 'bg-gray-100 text-gray-800 rounded-bl-sm',
             ]"
           >
-            <div v-if="msg.payload?.text">{{ msg.payload.text }}</div>
-            <div v-else class="font-mono text-xs opacity-70">{{ JSON.stringify(msg.payload || msg) }}</div>
-            <div class="text-xs opacity-60 mt-1">{{ formatTime(msg.created_at) }}</div>
+            <!-- sender name for others -->
+            <div v-if="!isMyMsg(msg)" class="text-xs font-semibold text-indigo-500 mb-0.5">
+              {{ partnerName(msg.from_agent_id) }}
+            </div>
+            <div>{{ msg.payload?.text || JSON.stringify(msg.payload || '') }}</div>
+            <div class="text-xs opacity-50 mt-1 text-right">{{ formatTime(msg.created_at) }}</div>
           </div>
         </div>
       </div>
 
-      <!-- Send input — only human senders can type -->
-      <div v-if="selectedConvo && currentSenderId" class="border-t border-gray-100 p-3 flex-shrink-0">
-        <div v-if="!isHumanSender" class="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 text-center">
-          ⚠ 只有人类身份可以发送私信。请在右上角设置身份。
+      <!-- Send box — human only -->
+      <div class="border-t border-gray-100 p-3 flex-shrink-0">
+        <div
+          v-if="myIdentityId && !isHumanIdentity"
+          class="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 text-center"
+        >
+          ⚠ 当前为 AI 视角（只读），切换到人类身份才能发送私信
         </div>
-        <div v-else class="flex gap-2">
+        <div v-else-if="myIdentityId && selectedPartnerId && isHumanIdentity" class="flex gap-2">
           <input
             v-model="dmInput"
             @keydown.enter.prevent="sendDmMsg"
@@ -100,6 +146,9 @@
             {{ dmSending ? '…' : '发送' }}
           </button>
         </div>
+        <div v-else class="text-xs text-gray-300 text-center py-1">
+          选择身份和对话对象后即可发送
+        </div>
       </div>
     </div>
   </div>
@@ -108,80 +157,70 @@
 <script setup>
 import { computed, ref, watch, nextTick } from 'vue'
 import { usePincerStore } from '../stores/pincer'
-import { fetchAgentMessages, sendDM } from '../api'
+import { fetchConversation, sendDM } from '../api'
 
 const store = usePincerStore()
-const selectedConvo = ref(null)        // B — recipient
+
+// Selected partner (left list) — "和谁聊"
+const selectedPartnerId = ref(null)
+
+// My identity (right top) — "我是谁"
+const myIdentityId = ref(store.humanAgentId || '')
+
 const convoEl = ref(null)
 const dmInput = ref('')
 const dmSending = ref(false)
 const loadingHistory = ref(false)
-const localMsgs = ref([])             // merged conversation messages
+const localMsgs = ref([])
 
-// A — sender perspective: selectedAgentId || humanAgentId
-const currentSenderId = computed(() =>
-  store.selectedAgentId || store.humanAgentId || null
-)
-
-// #16: only human senders can send DMs
-const isHumanSender = computed(() => {
-  const id = currentSenderId.value
-  if (!id) return false
-  // humanAgentId is always human
-  if (id === store.humanAgentId) return true
-  // check agent type in agent list
-  const agent = store.agents.find(a => a.id === id)
-  return agent?.type === 'human'
+// All agents sorted: humans first, then AI
+const sortedPartners = computed(() => {
+  const me = myIdentityId.value
+  const all = store.agents.filter(a => a.id !== me)
+  const humans = all.filter(a => a.type === 'human')
+  const ais = all.filter(a => a.type !== 'human')
+  return [...humans, ...ais]
 })
 
-// Show all agents except the current perspective agent
-const otherAgents = computed(() => {
-  const myId = currentSenderId.value
-  return store.agents.filter(a => a.id !== myId)
+const humanAgents = computed(() => store.agents.filter(a => a.type === 'human'))
+const aiAgents = computed(() => store.agents.filter(a => a.type !== 'human'))
+
+const isHumanIdentity = computed(() => {
+  if (!myIdentityId.value) return false
+  if (myIdentityId.value === store.humanAgentId) return true
+  const agent = store.agents.find(a => a.id === myIdentityId.value)
+  return agent?.type === 'human'
 })
 
 // When activeDmAgentId changes (from AgentCards click), open that convo
 watch(() => store.activeDmAgentId, (id) => {
-  if (id) selectRecipient(id)
+  if (id) selectedPartnerId.value = id
 })
 
-// When both sender AND recipient are set, load conversation
+// Load conversation when both sides are set
 watch(
-  [currentSenderId, selectedConvo],
-  ([senderA, recipientB]) => {
-    if (senderA && recipientB) loadConversation(senderA, recipientB)
+  [myIdentityId, selectedPartnerId],
+  ([a, b]) => {
+    if (a && b) loadConversation(a, b)
     else localMsgs.value = []
   }
 )
 
-/**
- * Load two-way conversation between A (sender) and B (recipient):
- * - GET /agents/A/messages?from=B  → what B said to A
- * - GET /agents/B/messages?from=A  → what A said to B
- * Merge + sort by created_at
- */
-async function loadConversation(senderA, recipientB) {
+// Pre-populate identity from humanAgentId when it loads
+watch(() => store.humanAgentId, (id) => {
+  if (id && !myIdentityId.value) myIdentityId.value = id
+})
+
+async function loadConversation(a, b) {
   loadingHistory.value = true
   localMsgs.value = []
   try {
-    const [fromB, fromA] = await Promise.all([
-      fetchAgentMessages(senderA, { from: recipientB, limit: 100 }),
-      fetchAgentMessages(recipientB, { from: senderA, limit: 100 }),
-    ])
-    const aArr = Array.isArray(fromB) ? fromB : (fromB.messages || [])
-    const bArr = Array.isArray(fromA) ? fromA : (fromA.messages || [])
-    // Deduplicate by id, sort by created_at
-    const all = [...aArr, ...bArr]
-    const seen = new Set()
-    const deduped = all.filter(m => {
-      if (seen.has(m.id)) return false
-      seen.add(m.id)
-      return true
-    })
-    deduped.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-    localMsgs.value = deduped
+    const msgs = await fetchConversation(a, b)
+    const arr = Array.isArray(msgs) ? msgs : (msgs.messages || [])
+    arr.sort((x, y) => new Date(x.created_at) - new Date(y.created_at))
+    localMsgs.value = arr
   } catch (e) {
-    console.warn('Failed to load DM conversation:', e.message)
+    console.warn('Failed to load conversation:', e.message)
   } finally {
     loadingHistory.value = false
     await nextTick()
@@ -200,25 +239,20 @@ function scrollToBottom() {
   if (convoEl.value) convoEl.value.scrollTop = convoEl.value.scrollHeight
 }
 
-async function selectRecipient(id) {
-  selectedConvo.value = id
-}
-
-// A's message: from_agent_id === sender A
 function isMyMsg(msg) {
-  return msg.from_agent_id === currentSenderId.value
+  return msg.from_agent_id === myIdentityId.value
 }
 
 const agentNameMap = computed(() => {
   const map = {}
-  for (const agent of store.agents) {
-    if (agent.id && agent.name) map[agent.id] = agent.name
+  for (const a of store.agents) {
+    if (a.id && a.name) map[a.id] = a.name
   }
   return map
 })
 
-function agentName(id) {
-  if (!id) return 'Unknown'
+function partnerName(id) {
+  if (!id) return '未知'
   return agentNameMap.value[id] || id.slice(0, 8)
 }
 
@@ -244,26 +278,25 @@ function formatTime(ts) {
 
 async function sendDmMsg() {
   const text = dmInput.value.trim()
-  const senderA = currentSenderId.value
-  const recipientB = selectedConvo.value
-  if (!text || !senderA || !recipientB) return
+  const a = myIdentityId.value
+  const b = selectedPartnerId.value
+  if (!text || !a || !b) return
   dmSending.value = true
   try {
-    await sendDM(senderA, recipientB, text)
-    // Optimistic: add outgoing message locally
+    await sendDM(a, b, text)
     localMsgs.value = [
       ...localMsgs.value,
       {
         id: `local-${Date.now()}`,
-        from_agent_id: senderA,
-        to_agent_id: recipientB,
+        from_agent_id: a,
+        to_agent_id: b,
         payload: { text },
         created_at: new Date().toISOString(),
       },
     ]
     dmInput.value = ''
   } catch (e) {
-    console.error('DM failed', e)
+    console.error('DM failed:', e)
   } finally {
     dmSending.value = false
   }
