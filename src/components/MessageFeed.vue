@@ -102,7 +102,7 @@
         <button
           @click="sendMessage"
           :disabled="!inputText.trim() || sending"
-          class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm transition flex-shrink-0"
+          class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 rounded-xl text-sm transition flex-shrink-0 self-stretch"
         >
           {{ sending ? '…' : '发送' }}
         </button>
