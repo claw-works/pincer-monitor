@@ -22,6 +22,9 @@ export const createProject = (name) =>
 export const fetchInbox = (agentId) =>
   getClient().get(`/api/v1/agents/${agentId}/inbox`).then(r => r.data)
 
+export const fetchAgentMessages = (agentId, limit = 100) =>
+  getClient().get(`/api/v1/agents/${agentId}/messages`, { params: { limit } }).then(r => r.data)
+
 // Human identity
 export const registerHuman = (name = 'You') =>
   getClient().post('/api/v1/agents/register', { name, type: 'human' }).then(r => r.data)

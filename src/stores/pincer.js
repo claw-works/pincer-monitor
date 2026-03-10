@@ -102,6 +102,20 @@ export const usePincerStore = defineStore('pincer', () => {
     dms.value = updated
   }
 
+  // Merge a list of messages under a single key (by sender), dedup by id
+  function mergeDMs(agentId, msgs) {
+    const updated = { ...dms.value }
+    if (!updated[agentId]) updated[agentId] = []
+    const existing = new Set(updated[agentId].map(m => m.id))
+    const newMsgs = msgs.filter(m => !existing.has(m.id))
+    if (newMsgs.length > 0) {
+      updated[agentId] = [...updated[agentId], ...newMsgs].sort(
+        (a, b) => new Date(a.created_at) - new Date(b.created_at)
+      )
+      dms.value = updated
+    }
+  }
+
   function addOutgoingDM(toAgentId, text) {
     const humanId = getHumanAgentId()
     const msg = {
@@ -134,7 +148,7 @@ export const usePincerStore = defineStore('pincer', () => {
     humanAgentId,
     selectedAgentId, selectedAgent, selectAgent,
     activeDmAgentId, openDM,
-    dms, addOutgoingDM,
+    dms, addOutgoingDM, mergeDMs,
     refresh, refreshAgents, refreshTasks, refreshMessages, refreshDMs,
     startPolling, stopPolling,
   }
