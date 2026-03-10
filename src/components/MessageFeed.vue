@@ -121,7 +121,6 @@ import 'highlight.js/styles/github.css'
 import { usePincerStore } from '../stores/pincer'
 import { sendRoomMessage } from '../api'
 import { getRoomId } from '../config'
-import { usePolling } from '../composables/usePolling'
 
 // Configure marked with syntax highlighting
 marked.setOptions({
@@ -143,7 +142,8 @@ function renderMd(text) {
 
 const emit = defineEmits(['need-profile'])
 const store = usePincerStore()
-usePolling(() => store.refreshMessages(), 5000)
+// Messages are delivered via WebSocket (store.startPolling → wsConnect).
+// No polling needed here.
 const scrollEl = ref(null)
 
 // Perspective-aware sender logic
