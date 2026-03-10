@@ -50,8 +50,28 @@
         </div>
       </div>
     </div>
-    <!-- Chat input with @mention -->
-    <div v-if="store.humanAgentId" class="mt-3 relative">
+    <!-- Chat input / perspective indicator -->
+    <div class="mt-3 relative">
+      <!-- AI perspective: read-only notice -->
+      <div
+        v-if="isAiPerspective"
+        class="text-xs text-amber-600 bg-amber-50 rounded-xl px-3 py-2 text-center"
+      >
+        🐾 {{ store.selectedAgent?.name || store.selectedAgent?.id?.slice(0,8) }} 视角（只读）
+      </div>
+
+      <!-- No identity: prompt setup -->
+      <div v-else-if="!currentRoomSender" class="mt-0">
+        <button
+          @click="$emit('need-profile')"
+          class="w-full text-xs text-indigo-500 hover:text-indigo-700 border border-dashed border-indigo-200 hover:border-indigo-400 rounded-xl py-2 transition"
+        >
+          请先设置身份才能发消息 →
+        </button>
+      </div>
+
+      <!-- Human sender: show input -->
+      <div v-else class="relative">
       <!-- @mention dropdown -->
       <div
         v-if="mentionList.length"
@@ -88,14 +108,7 @@
           {{ sending ? '…' : '发送' }}
         </button>
       </div>
-    </div>
-    <div v-else class="mt-3">
-      <button
-        @click="$emit('need-profile')"
-        class="w-full text-xs text-indigo-500 hover:text-indigo-700 border border-dashed border-indigo-200 hover:border-indigo-400 rounded-xl py-2 transition"
-      >
-        请先登录人类身份才能发消息 →
-      </button>
+      </div>  <!-- end human-sender block -->
     </div>
   </div>
 </template>
@@ -134,6 +147,22 @@ const store = usePincerStore()
 usePolling(() => store.refreshMessages(), 5000)
 const scrollEl = ref(null)
 
+// Perspective-aware sender logic
+const isAiPerspective = computed(() => {
+  if (!store.selectedAgentId) return false
+  const agent = store.agents.find(a => a.id === store.selectedAgentId)
+  return agent?.type !== 'human'
+})
+
+// Effective room sender: selected human perspective, or fallback to registered human
+const currentRoomSender = computed(() => {
+  if (store.selectedAgentId) {
+    const agent = store.agents.find(a => a.id === store.selectedAgentId)
+    return agent?.type === 'human' ? store.selectedAgentId : null
+  }
+  return store.humanAgentId || null
+})
+
 const sorted = computed(() =>
   [...store.messages].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
 )
@@ -159,7 +188,7 @@ watch(() => store.messages.length, async () => {
 })
 
 function isMine(msg) {
-  const myId = store.humanAgentId || store.selectedAgentId
+  const myId = currentRoomSender.value || store.selectedAgentId
   return myId && msg.sender_agent_id === myId
 }
 
@@ -242,11 +271,12 @@ function insertMention(agent) {
 
 async function sendMessage() {
   const text = inputText.value.trim()
-  if (!text || !store.humanAgentId) return
+  const sender = currentRoomSender.value
+  if (!text || !sender) return
   sending.value = true
   mentionList.value = []
   try {
-    await sendRoomMessage(getRoomId(), store.humanAgentId, text)
+    await sendRoomMessage(getRoomId(), sender, text)
     inputText.value = ''
     await store.refresh()
   } catch (e) {
