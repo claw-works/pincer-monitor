@@ -11,6 +11,7 @@ export const usePincerStore = defineStore('pincer', () => {
   const loading = ref(false)
   const error = ref(null)
   const wsConnected = ref(false)
+  const lastMessageAt = ref(null) // ISO timestamp of last seen room message
 
   // Human agent identity
   const humanAgentId = ref(getHumanAgentId())
@@ -59,12 +60,33 @@ export const usePincerStore = defineStore('pincer', () => {
     }
   }
 
-  async function refreshMessages() {
+  async function refreshMessages({ since } = {}) {
     const roomId = getRoomId()
     if (!roomId) return
     try {
-      const m = await fetchMessages(roomId)
-      messages.value = Array.isArray(m) ? m : (m.messages || [])
+      const m = await fetchMessages(roomId, { limit: 50, since })
+      const fetched = Array.isArray(m) ? m : (m.messages || [])
+      if (since && fetched.length > 0) {
+        // Merge new messages into existing list (avoid duplicates)
+        const existingIds = new Set(messages.value.map(x => x.id))
+        const newMsgs = fetched.filter(x => !existingIds.has(x.id))
+        if (newMsgs.length > 0) {
+          messages.value = [...messages.value, ...newMsgs].sort(
+            (a, b) => new Date(a.created_at) - new Date(b.created_at)
+          )
+          console.log(`[Store] Merged ${newMsgs.length} missed messages via since=${since}`)
+        }
+      } else {
+        // Initial load: replace
+        messages.value = fetched
+      }
+      // Update lastMessageAt to the most recent message timestamp
+      if (messages.value.length > 0) {
+        const latest = messages.value[messages.value.length - 1].created_at
+        if (!lastMessageAt.value || latest > lastMessageAt.value) {
+          lastMessageAt.value = latest
+        }
+      }
       error.value = null
     } catch (e) {
       error.value = e.message
@@ -145,6 +167,10 @@ export const usePincerStore = defineStore('pincer', () => {
         if (data?.room_id && data.room_id !== roomId) break
         if (data && !messages.value.find(m => m.id === data.id)) {
           messages.value = [...messages.value, data]
+          // Track latest message timestamp
+          if (data.created_at && (!lastMessageAt.value || data.created_at > lastMessageAt.value)) {
+            lastMessageAt.value = data.created_at
+          }
         }
         break
       }
@@ -192,7 +218,15 @@ export const usePincerStore = defineStore('pincer', () => {
 
   // ── WebSocket lifecycle ───────────────────────────────────────────────────
 
-  const { connected: wsStatus, connect: wsConnect, disconnect: wsDisconnect } = useWebSocket(handleWsEvent)
+  const { connected: wsStatus, connect: wsConnect, disconnect: wsDisconnect } = useWebSocket(
+    handleWsEvent,
+    {
+      onReconnect: () => {
+        // Catch up on any messages missed during WS outage
+        refreshMessages({ since: lastMessageAt.value })
+      },
+    }
+  )
 
   // Fallback polling interval (ms) — used when WS is not available
   // Set to null to disable fallback polling entirely once WS is stable

@@ -14,11 +14,13 @@ import { getPincerBase, getApiKey } from '../config'
  * Usage:
  *   const { connected, connect, disconnect } = useWebSocket(onEvent)
  */
-export function useWebSocket(onEvent) {
+export function useWebSocket(onEvent, { onReconnect } = {}) {
   const connected = ref(false)
   let ws = null
   let reconnectTimer = null
   let stopped = false
+  let hasConnectedBefore = false
+  let reconnectDelay = 5000
 
   function getWsUrl() {
     const base = getPincerBase()
@@ -42,8 +44,16 @@ export function useWebSocket(onEvent) {
 
     ws.onopen = () => {
       connected.value = true
+      reconnectDelay = 5000 // reset backoff on successful connect
       console.log('[WS] Connected')
       clearTimeout(reconnectTimer)
+
+      if (hasConnectedBefore) {
+        // Reconnect: notify store to catch up on missed messages
+        console.log('[WS] Reconnected — triggering catch-up')
+        onReconnect && onReconnect()
+      }
+      hasConnectedBefore = true
     }
 
     ws.onmessage = (event) => {
@@ -66,14 +76,14 @@ export function useWebSocket(onEvent) {
     }
   }
 
-  function scheduleReconnect(delayMs = 5000) {
+  function scheduleReconnect() {
     clearTimeout(reconnectTimer)
+    console.log(`[WS] Reconnecting in ${reconnectDelay}ms...`)
     reconnectTimer = setTimeout(() => {
-      if (!stopped) {
-        console.log('[WS] Reconnecting...')
-        connect()
-      }
-    }, delayMs)
+      if (!stopped) connect()
+    }, reconnectDelay)
+    // Exponential backoff: 5s → 10s → 20s → max 60s
+    reconnectDelay = Math.min(reconnectDelay * 2, 60000)
   }
 
   function disconnect() {
