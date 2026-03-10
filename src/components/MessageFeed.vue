@@ -181,7 +181,13 @@ onMounted(async () => {
   await nextTick()
   scrollToBottom()
 })
-watch(() => store.messages.length, async () => {
+// Watch the id of the last message so we scroll whether the change comes from
+// WS push, HTTP poll, or an outgoing message being appended.
+const lastMsgId = computed(() => {
+  const msgs = store.messages
+  return msgs.length ? msgs[msgs.length - 1].id : null
+})
+watch(lastMsgId, async () => {
   await nextTick()
   scrollToBottom()
 })
@@ -277,7 +283,11 @@ async function sendMessage() {
   try {
     await sendRoomMessage(getRoomId(), sender, text)
     inputText.value = ''
-    await store.refresh()
+    // Refresh to pick up the sent message if WS hasn't pushed it yet,
+    // then explicitly scroll to bottom regardless of whether length changed.
+    await store.refreshMessages()
+    await nextTick()
+    scrollToBottom()
   } catch (e) {
     console.error('send failed', e)
   } finally {
