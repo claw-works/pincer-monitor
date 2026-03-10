@@ -29,7 +29,9 @@ export function useWebSocket(onEvent, { onReconnect } = {}) {
     const roomId = getRoomId()
     // Convert http(s) → ws(s)
     const wsBase = base.replace(/^http/, 'ws')
-    return `${wsBase}/api/v1/rooms/${encodeURIComponent(roomId)}/ws?api_key=${encodeURIComponent(apiKey)}`
+    // Note: roomId may contain colons (e.g. "user:xxx:default") — do NOT
+    // encodeURIComponent the roomId as chi router won't match %3A in path params.
+    return `${wsBase}/api/v1/rooms/${roomId}/ws?api_key=${encodeURIComponent(apiKey)}`
   }
 
   function connect() {
