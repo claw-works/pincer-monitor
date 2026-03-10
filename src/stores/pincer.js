@@ -63,26 +63,47 @@ export const usePincerStore = defineStore('pincer', () => {
   async function refreshMessages({ since } = {}) {
     const roomId = getRoomId()
     if (!roomId) return
+    const PAGE_SIZE = 50
     try {
-      const m = await fetchMessages(roomId, { limit: 50, since })
-      const fetched = Array.isArray(m) ? m : (m.messages || [])
-      if (since && fetched.length > 0) {
-        // Merge new messages into existing list (avoid duplicates)
-        const existingIds = new Set(messages.value.map(x => x.id))
-        const newMsgs = fetched.filter(x => !existingIds.has(x.id))
-        if (newMsgs.length > 0) {
-          messages.value = [...messages.value, ...newMsgs].sort(
-            (a, b) => new Date(a.created_at) - new Date(b.created_at)
-          )
-          console.log(`[Store] Merged ${newMsgs.length} missed messages via since=${since}`)
+      if (since) {
+        // Paginate to catch up on ALL missed messages during WS outage.
+        // Loop until a page returns fewer than PAGE_SIZE results (no more pages).
+        let cursor = since
+        let totalMerged = 0
+
+        do {
+          const m = await fetchMessages(roomId, { limit: PAGE_SIZE, since: cursor })
+          const page = Array.isArray(m) ? m : (m.messages || [])
+          if (page.length === 0) break
+
+          // Merge page into existing messages, dedup by id
+          const existingIds = new Set(messages.value.map(x => x.id))
+          const newMsgs = page.filter(x => !existingIds.has(x.id))
+          if (newMsgs.length > 0) {
+            messages.value = [...messages.value, ...newMsgs].sort(
+              (a, b) => new Date(a.created_at) - new Date(b.created_at)
+            )
+            totalMerged += newMsgs.length
+          }
+
+          if (page.length < PAGE_SIZE) break
+          // Advance cursor to last message's timestamp for next page
+          cursor = page[page.length - 1].created_at
+        } while (true)
+
+        if (totalMerged > 0) {
+          console.log(`[Store] Merged ${totalMerged} missed messages via since=${since}`)
         }
       } else {
-        // Initial load: replace
+        // Initial load: single fetch, replace messages
+        // (history depth of PAGE_SIZE is sufficient for startup)
+        const m = await fetchMessages(roomId, { limit: PAGE_SIZE })
+        const fetched = Array.isArray(m) ? m : (m.messages || [])
         messages.value = fetched
       }
-      // Update lastMessageAt to the most recent message timestamp
-      // Note: messages are sorted by created_at above, so last element = latest
-      // Server returns messages in ascending order, so this is safe
+
+      // Update lastMessageAt to the most recent message timestamp.
+      // messages are sorted ascending by created_at, so last element = latest.
       if (messages.value.length > 0) {
         const latest = messages.value[messages.value.length - 1].created_at
         if (!lastMessageAt.value || latest > lastMessageAt.value) {
