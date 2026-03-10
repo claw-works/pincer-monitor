@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-xl shadow p-4 h-96 flex flex-col">
+  <div class="bg-white rounded-xl shadow p-4 flex flex-col h-full">
     <div class="font-semibold text-gray-700 mb-3 flex items-center justify-between">
       <span>消息流</span>
       <span v-if="store.selectedAgentId" class="text-xs text-indigo-500">
