@@ -18,6 +18,15 @@
         </span>
       </div>
       <div class="flex items-center gap-3">
+        <!-- WS connection indicator -->
+        <span
+          :title="store.wsConnected ? 'WebSocket 已连接' : 'WebSocket 断开，使用轮询备用'"
+          class="text-xs flex items-center gap-1"
+          :class="store.wsConnected ? 'text-green-500' : 'text-gray-300'"
+        >
+          <span class="w-1.5 h-1.5 rounded-full inline-block" :class="store.wsConnected ? 'bg-green-400' : 'bg-gray-300'"></span>
+          {{ store.wsConnected ? 'Live' : 'Polling' }}
+        </span>
         <span v-if="store.error" class="text-xs text-red-500">⚠ {{ store.error }}</span>
         <button
           @click="store.refresh()"

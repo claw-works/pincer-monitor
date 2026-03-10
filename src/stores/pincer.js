@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { fetchAgents, fetchTasks, fetchMessages, fetchInbox } from '../api'
 import { getRoomId, getHumanAgentId, POLL_INTERVAL } from '../config'
+import { useWebSocket } from '../composables/useWebSocket'
 
 export const usePincerStore = defineStore('pincer', () => {
   const agents = ref([])
@@ -9,6 +10,7 @@ export const usePincerStore = defineStore('pincer', () => {
   const messages = ref([])
   const loading = ref(false)
   const error = ref(null)
+  const wsConnected = ref(false)
 
   // Human agent identity
   const humanAgentId = ref(getHumanAgentId())
@@ -131,20 +133,95 @@ export const usePincerStore = defineStore('pincer', () => {
     dms.value = updated
   }
 
-  // Legacy: global polling (used by App.vue for initial load + agents sidebar)
-  let timer = null
+  // ── WebSocket event handler ───────────────────────────────────────────────
+
+  function handleWsEvent(event) {
+    const { type, data } = event || {}
+
+    switch (type) {
+      case 'room.message': {
+        // Append new message if not duplicate
+        const roomId = getRoomId()
+        if (data?.room_id && data.room_id !== roomId) break
+        if (data && !messages.value.find(m => m.id === data.id)) {
+          messages.value = [...messages.value, data]
+        }
+        break
+      }
+
+      case 'task.update':
+      case 'task.result': {
+        if (!data?.id) break
+        const idx = tasks.value.findIndex(t => t.id === data.id)
+        if (idx >= 0) {
+          // Update existing task in-place
+          tasks.value = [
+            ...tasks.value.slice(0, idx),
+            { ...tasks.value[idx], ...data },
+            ...tasks.value.slice(idx + 1),
+          ]
+        } else {
+          // New task we haven't seen
+          tasks.value = [...tasks.value, data]
+        }
+        break
+      }
+
+      case 'agent.online':
+      case 'agent.heartbeat': {
+        if (!data?.id) break
+        const aIdx = agents.value.findIndex(a => a.id === data.id)
+        if (aIdx >= 0) {
+          agents.value = [
+            ...agents.value.slice(0, aIdx),
+            { ...agents.value[aIdx], ...data, status: 'online' },
+            ...agents.value.slice(aIdx + 1),
+          ]
+        } else {
+          // Unknown agent — trigger a full refresh
+          refreshAgents()
+        }
+        break
+      }
+
+      default:
+        // Unknown event type — ignore silently
+        break
+    }
+  }
+
+  // ── WebSocket lifecycle ───────────────────────────────────────────────────
+
+  const { connected: wsStatus, connect: wsConnect, disconnect: wsDisconnect } = useWebSocket(handleWsEvent)
+
+  // Fallback polling interval (ms) — used when WS is not available
+  // Set to null to disable fallback polling entirely once WS is stable
+  const FALLBACK_INTERVAL = POLL_INTERVAL * 6 // 30s fallback
+
+  let fallbackTimer = null
 
   function startPolling() {
-    refreshAgents()
-    timer = setInterval(refreshAgents, POLL_INTERVAL)
+    // Initial full data load via HTTP
+    refresh()
+
+    // Start WebSocket for real-time updates
+    wsConnect()
+
+    // Light fallback: re-sync agents list every 30s in case WS misses something
+    fallbackTimer = setInterval(refreshAgents, FALLBACK_INTERVAL)
   }
 
   function stopPolling() {
-    if (timer) clearInterval(timer)
+    wsDisconnect()
+    if (fallbackTimer) {
+      clearInterval(fallbackTimer)
+      fallbackTimer = null
+    }
   }
 
   return {
     agents, tasks, messages, loading, error,
+    wsConnected: wsStatus,
     humanAgentId,
     selectedAgentId, selectedAgent, selectAgent,
     activeDmAgentId, openDM,
