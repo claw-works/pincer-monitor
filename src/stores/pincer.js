@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { fetchAgents, fetchTasks, fetchMessages, fetchInbox } from '../api'
 import { getRoomId, getHumanAgentId, POLL_INTERVAL } from '../config'
 
@@ -13,8 +13,11 @@ export const usePincerStore = defineStore('pincer', () => {
   // Human agent identity
   const humanAgentId = ref(getHumanAgentId())
 
-  // Selected agent (for bubble view "right side")
+  // Selected agent for current view perspective
   const selectedAgentId = ref(localStorage.getItem('pincer_selected_agent') || '')
+  const selectedAgent = computed(() =>
+    selectedAgentId.value ? agents.value.find(a => a.id === selectedAgentId.value) || null : null
+  )
 
   function selectAgent(id) {
     selectedAgentId.value = selectedAgentId.value === id ? '' : id
@@ -103,7 +106,7 @@ export const usePincerStore = defineStore('pincer', () => {
   return {
     agents, tasks, messages, loading, error,
     humanAgentId,
-    selectedAgentId, selectAgent,
+    selectedAgentId, selectedAgent, selectAgent,
     activeDmAgentId, openDM,
     dms, addOutgoingDM,
     refresh, startPolling, stopPolling,

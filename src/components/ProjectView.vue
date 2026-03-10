@@ -1,95 +1,89 @@
 <template>
-  <div class="space-y-4">
-    <!-- Create project form -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-      <form @submit.prevent="handleCreate" class="flex items-center gap-3">
-        <input
-          v-model="newName"
-          type="text"
-          placeholder="新建项目名称…"
-          required
-          class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-        />
-        <button
-          type="submit"
-          :disabled="creating"
-          class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition whitespace-nowrap"
-        >
-          {{ creating ? '创建中…' : '+ 新建项目' }}
-        </button>
-      </form>
-      <p v-if="createError" class="text-xs text-red-500 mt-2">{{ createError }}</p>
-    </div>
+  <div class="flex h-full">
+    <!-- Left: project list -->
+    <div class="w-52 flex-shrink-0 border-r border-gray-200 bg-white overflow-y-auto flex flex-col">
+      <div class="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
+        项目
+      </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="text-sm text-gray-400">加载中…</div>
+      <!-- 未分类 -->
+      <button
+        @click="selectedProject = null"
+        :class="[
+          'flex items-center justify-between px-4 py-3 text-sm text-left transition hover:bg-gray-50',
+          selectedProject === null
+            ? 'bg-indigo-50 text-indigo-700 font-medium border-r-2 border-indigo-500'
+            : 'text-gray-700',
+        ]"
+      >
+        <span class="flex items-center gap-2"><span>📂</span> 未分类</span>
+        <span class="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+          {{ unclassifiedTasks.length }}
+        </span>
+      </button>
 
-    <!-- Empty -->
-    <div v-else-if="projects.length === 0" class="text-sm text-gray-400 italic px-1">
-      暂无项目
-    </div>
+      <!-- Loading -->
+      <div v-if="loading" class="px-4 py-3 text-xs text-gray-400">加载中…</div>
 
-    <!-- Project list -->
-    <div v-else class="space-y-3">
-      <div
+      <!-- Project list -->
+      <button
         v-for="project in projects"
         :key="project.id"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+        @click="selectProject(project)"
+        :class="[
+          'flex items-center justify-between px-4 py-3 text-sm text-left transition hover:bg-gray-50',
+          selectedProject?.id === project.id
+            ? 'bg-indigo-50 text-indigo-700 font-medium border-r-2 border-indigo-500'
+            : 'text-gray-700',
+        ]"
       >
-        <!-- Project header -->
-        <button
-          class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition text-left"
-          @click="toggle(project.id)"
+        <span class="flex items-center gap-2 min-w-0">
+          <span class="flex-shrink-0">📁</span>
+          <span class="truncate">{{ project.name }}</span>
+        </span>
+        <span
+          v-if="projectTaskCounts[project.id] !== undefined"
+          class="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1"
         >
-          <div class="flex items-center gap-3">
-            <span class="text-lg">📁</span>
-            <div>
-              <div class="font-semibold text-gray-800">{{ project.name }}</div>
-              <div class="text-xs text-gray-400 mt-0.5">
-                {{ project.id.slice(0, 8) }} · {{ formatDate(project.created_at) }}
-              </div>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <span
-              v-if="taskCounts[project.id] !== undefined"
-              class="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full"
-            >
-              {{ taskCounts[project.id] }} 个任务
-            </span>
-            <span class="text-gray-400 text-sm">{{ expanded.has(project.id) ? '▲' : '▼' }}</span>
-          </div>
-        </button>
+          {{ projectTaskCounts[project.id] }}
+        </span>
+      </button>
+    </div>
 
-        <!-- Task list (expanded) -->
-        <div v-if="expanded.has(project.id)" class="border-t border-gray-100 bg-gray-50 px-5 py-3">
-          <div v-if="loadingTasks.has(project.id)" class="text-xs text-gray-400 py-2">
-            加载任务…
-          </div>
-          <div
-            v-else-if="!projectTasks[project.id] || projectTasks[project.id].length === 0"
-            class="text-xs text-gray-400 italic py-2"
-          >
-            该项目暂无任务
-          </div>
-          <div v-else class="space-y-2">
-            <div
-              v-for="task in projectTasks[project.id]"
-              :key="task.id"
-              class="flex items-start gap-3 bg-white rounded-lg px-4 py-3 border border-gray-100"
-            >
-              <span :class="statusDot(task.status)" class="mt-1 w-2 h-2 rounded-full flex-shrink-0"></span>
-              <div class="min-w-0 flex-1">
-                <div class="text-sm font-medium text-gray-800 truncate">{{ task.title }}</div>
-                <div class="flex items-center gap-2 mt-1 flex-wrap">
-                  <span :class="statusBadge(task.status)" class="text-xs px-1.5 py-0.5 rounded font-medium">
-                    {{ task.status }}
-                  </span>
-                  <span v-if="task.assigned_agent_id" class="text-xs text-gray-400">
-                    → {{ task.assigned_agent_id.slice(0, 8) }}
-                  </span>
-                </div>
-              </div>
+    <!-- Right: task list for selected project -->
+    <div class="flex-1 overflow-y-auto p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-gray-800">
+          {{ selectedProject ? selectedProject.name : '未分类任务' }}
+        </h3>
+        <span class="text-xs text-gray-400">{{ visibleTasks.length }} 个任务</span>
+      </div>
+
+      <!-- Loading tasks -->
+      <div v-if="loadingTasks" class="text-sm text-gray-400">加载中…</div>
+
+      <!-- No tasks -->
+      <div v-else-if="visibleTasks.length === 0" class="text-sm text-gray-400 italic py-8 text-center">
+        该分类暂无任务
+      </div>
+
+      <!-- Task rows -->
+      <div v-else class="space-y-2">
+        <div
+          v-for="task in visibleTasks"
+          :key="task.id"
+          class="bg-white rounded-xl border border-gray-100 px-4 py-3 flex items-start gap-3 shadow-sm"
+        >
+          <span :class="statusDot(task.status)" class="mt-1.5 w-2 h-2 rounded-full flex-shrink-0"></span>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-gray-800 truncate">{{ task.title || task.description }}</div>
+            <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span :class="statusBadge(task.status)" class="text-xs px-1.5 py-0.5 rounded font-medium">
+                {{ task.status }}
+              </span>
+              <span v-if="task.assigned_agent_id" class="text-xs text-gray-400 font-mono">
+                → {{ agentName(task.assigned_agent_id) }}
+              </span>
             </div>
           </div>
         </div>
@@ -99,71 +93,66 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { fetchProjects, fetchProjectTasks, createProject } from '../api'
+import { ref, computed, watch, onMounted } from 'vue'
+import { usePincerStore } from '../stores/pincer'
+import { fetchProjects, fetchProjectTasks } from '../api'
+
+const store = usePincerStore()
 
 const projects = ref([])
 const loading = ref(true)
-const expanded = ref(new Set())
-const projectTasks = ref({})
-const loadingTasks = ref(new Set())
-const taskCounts = ref({})
+const selectedProject = ref(null) // null = 未分类
+const projectTasks = ref({}) // { projectId: [task, ...] }
+const loadingTasks = ref(false)
+const projectTaskCounts = ref({})
 
-const newName = ref('')
-const creating = ref(false)
-const createError = ref('')
+// Tasks with no project_id from the global store
+const unclassifiedTasks = computed(() =>
+  store.tasks.filter(t => !t.project_id)
+)
 
-onMounted(async () => {
-  await loadProjects()
+// Tasks to display on right panel
+const visibleTasks = computed(() => {
+  if (selectedProject.value === null) return unclassifiedTasks.value
+  return projectTasks.value[selectedProject.value.id] || []
 })
 
-async function loadProjects() {
-  loading.value = true
+onMounted(async () => {
   try {
     const data = await fetchProjects()
     projects.value = Array.isArray(data) ? data : (data.projects || [])
+    // Pre-count tasks for each project
+    for (const p of projects.value) {
+      fetchProjectTasks(p.id).then(tasks => {
+        const arr = Array.isArray(tasks) ? tasks : (tasks.tasks || [])
+        projectTaskCounts.value = { ...projectTaskCounts.value, [p.id]: arr.length }
+        projectTasks.value = { ...projectTasks.value, [p.id]: arr }
+      }).catch(() => {})
+    }
   } finally {
     loading.value = false
   }
-}
+})
 
-async function handleCreate() {
-  createError.value = ''
-  creating.value = true
+async function selectProject(project) {
+  selectedProject.value = project
+  if (!project) return
+  if (projectTasks.value[project.id] !== undefined) return
+
+  loadingTasks.value = true
   try {
-    const proj = await createProject(newName.value.trim())
-    projects.value = [proj, ...projects.value]
-    newName.value = ''
-  } catch (e) {
-    createError.value = `创建失败：${e.message}`
+    const tasks = await fetchProjectTasks(project.id)
+    const arr = Array.isArray(tasks) ? tasks : (tasks.tasks || [])
+    projectTasks.value = { ...projectTasks.value, [project.id]: arr }
+    projectTaskCounts.value = { ...projectTaskCounts.value, [project.id]: arr.length }
   } finally {
-    creating.value = false
+    loadingTasks.value = false
   }
 }
 
-async function toggle(id) {
-  if (expanded.value.has(id)) {
-    expanded.value = new Set([...expanded.value].filter(x => x !== id))
-    return
-  }
-  expanded.value = new Set([...expanded.value, id])
-  if (projectTasks.value[id] !== undefined) return
-
-  loadingTasks.value = new Set([...loadingTasks.value, id])
-  try {
-    const tasks = await fetchProjectTasks(id)
-    projectTasks.value = {
-      ...projectTasks.value,
-      [id]: Array.isArray(tasks) ? tasks : (tasks.tasks || []),
-    }
-    taskCounts.value = { ...taskCounts.value, [id]: projectTasks.value[id].length }
-  } finally {
-    loadingTasks.value = new Set([...loadingTasks.value].filter(x => x !== id))
-  }
-}
-
-function formatDate(ts) {
-  return new Date(ts).toLocaleDateString()
+function agentName(id) {
+  const agent = store.agents.find(a => a.id === id)
+  return agent?.name || id.slice(0, 8)
 }
 
 function statusDot(status) {

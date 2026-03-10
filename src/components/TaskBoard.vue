@@ -23,7 +23,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="task in store.tasks" :key="task.id" class="border-b hover:bg-gray-50">
+          <tr v-for="task in visibleTasks" :key="task.id" class="border-b hover:bg-gray-50">
             <td class="py-2 pr-4 font-mono text-xs text-gray-400">{{ task.id?.slice(0,8) }}</td>
             <td class="py-2 pr-4 text-gray-800 max-w-xs truncate">{{ task.title || task.description }}</td>
             <td class="py-2 pr-4">
@@ -37,7 +37,7 @@
             </td>
             <td class="py-2 text-xs text-gray-400">{{ formatTime(task.updated_at) }}</td>
           </tr>
-          <tr v-if="!store.tasks.length">
+          <tr v-if="!visibleTasks.length">
             <td colspan="5" class="py-8 text-center text-gray-400">No active tasks</td>
           </tr>
         </tbody>
@@ -144,6 +144,12 @@ import { usePincerStore } from '../stores/pincer'
 import { createTask } from '../api'
 
 const store = usePincerStore()
+
+// Filter tasks by current agent perspective
+const visibleTasks = computed(() => {
+  if (!store.selectedAgentId) return store.tasks
+  return store.tasks.filter(t => t.assigned_agent_id === store.selectedAgentId)
+})
 
 const showModal = ref(false)
 const submitting = ref(false)
