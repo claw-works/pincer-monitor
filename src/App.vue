@@ -225,9 +225,9 @@ const active = ref('room')
 
 const navItems = computed(() => [
   { key: 'room',     icon: '💬', label: 'Room',     badge: store.messages.length },
+  { key: 'dm',       icon: '📩', label: 'DMs' },
   { key: 'tasks',    icon: '📋', label: 'Tasks',    badge: filteredTaskCount.value },
   { key: 'projects', icon: '📁', label: 'Projects' },
-  { key: 'dm',       icon: '📩', label: 'DMs' },
 ])
 
 // AI agents only (exclude humans) — for sidebar perspective switcher
