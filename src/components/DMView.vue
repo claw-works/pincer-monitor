@@ -106,17 +106,16 @@
           ⚠ 当前为 AI 视角（只读），切换到人类视角才能发私信
         </div>
         <div v-else-if="selectedPartnerId" class="flex gap-2">
-          <input
+          <textarea
             v-model="dmInput"
-            @keydown.enter.prevent="sendDmMsg"
-            type="text"
+            rows="2"
             placeholder="发私信…"
-            class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-          />
+            class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition resize-none"
+          ></textarea>
           <button
             @click="sendDmMsg"
             :disabled="!dmInput.trim() || dmSending"
-            class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm transition"
+            class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm transition flex-shrink-0"
           >
             {{ dmSending ? '…' : '发送' }}
           </button>

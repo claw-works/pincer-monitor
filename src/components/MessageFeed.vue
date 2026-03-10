@@ -88,22 +88,21 @@
           <span class="text-gray-800 font-medium">{{ agent.name || agent.id.slice(0, 8) }}</span>
         </button>
       </div>
-      <div class="flex gap-2">
-        <input
+      <div class="flex gap-2 items-end">
+        <textarea
           ref="chatInputEl"
           v-model="inputText"
-          @keydown.enter.prevent="sendMessage"
           @input="onInput"
           @keydown.escape="mentionList = []"
           @keydown.tab.prevent="mentionList.length && insertMention(mentionList[0])"
-          type="text"
+          rows="2"
           placeholder="发消息到 Room… (@提及)"
-          class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-        />
+          class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition resize-none"
+        ></textarea>
         <button
           @click="sendMessage"
           :disabled="!inputText.trim() || sending"
-          class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm transition"
+          class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm transition flex-shrink-0"
         >
           {{ sending ? '…' : '发送' }}
         </button>
