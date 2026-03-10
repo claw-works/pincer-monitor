@@ -1,6 +1,6 @@
 <template>
   <div class="bg-white rounded-xl shadow flex" style="height: 480px;">
-    <!-- Left: all agents list -->
+    <!-- Left: recipient list -->
     <div class="w-48 border-r border-gray-100 flex flex-col flex-shrink-0">
       <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b border-gray-100 flex-shrink-0">
         私信
@@ -12,7 +12,7 @@
         <button
           v-for="agent in otherAgents"
           :key="agent.id"
-          @click="selectConvo(agent.id)"
+          @click="selectRecipient(agent.id)"
           :class="[
             'w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-gray-50 transition',
             selectedConvo === agent.id ? 'bg-indigo-50 border-r-2 border-indigo-500' : '',
@@ -28,9 +28,6 @@
             <div class="text-sm font-medium text-gray-800 truncate">
               {{ agent.name || agent.id.slice(0, 8) }}
             </div>
-            <div class="text-xs text-gray-400">
-              {{ store.dms[agent.id]?.length || 0 }} 条
-            </div>
           </div>
         </button>
       </div>
@@ -39,20 +36,28 @@
     <!-- Right: conversation -->
     <div class="flex-1 flex flex-col min-w-0">
       <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b border-gray-100 flex-shrink-0 flex items-center justify-between">
-        <span>{{ selectedConvo ? agentName(selectedConvo) : '选择一个对话' }}</span>
+        <span>{{ selectedConvo ? agentName(selectedConvo) : '选择对话' }}</span>
         <span v-if="loadingHistory" class="text-gray-300 font-normal normal-case">加载中…</span>
       </div>
 
       <div class="flex-1 overflow-y-auto p-4 space-y-3" ref="convoEl">
-        <div v-if="!selectedConvo" class="text-center text-gray-400 text-sm py-8">
-          从左侧选择一个 Agent 开始私信
+        <!-- No perspective -->
+        <div v-if="!currentSenderId" class="text-center text-gray-400 text-sm py-8">
+          请先在左侧侧边栏选择视角（Agent）
         </div>
+        <!-- Has perspective, no recipient -->
+        <div v-else-if="!selectedConvo" class="text-center text-gray-400 text-sm py-8">
+          从左侧选择对话对象
+        </div>
+        <!-- Loading -->
         <div v-else-if="loadingHistory" class="text-center text-gray-400 text-sm py-8">
-          加载历史消息…
+          加载消息中…
         </div>
+        <!-- Empty -->
         <div v-else-if="!convoMsgs.length" class="text-center text-gray-400 text-sm py-8">
           暂无消息，发一条吧 👋
         </div>
+        <!-- Messages -->
         <div
           v-else
           v-for="msg in convoMsgs"
@@ -69,7 +74,7 @@
           >
             <div v-if="msg.payload?.text">{{ msg.payload.text }}</div>
             <div v-else class="font-mono text-xs opacity-70">{{ JSON.stringify(msg.payload || msg) }}</div>
-            <div class="text-xs opacity-60 mt-1">{{ formatTime(msg.created_at || msg.timestamp) }}</div>
+            <div class="text-xs opacity-60 mt-1">{{ formatTime(msg.created_at) }}</div>
           </div>
         </div>
       </div>
@@ -91,26 +96,24 @@
           {{ dmSending ? '…' : '发送' }}
         </button>
       </div>
-      <div v-else-if="selectedConvo && !currentSenderId" class="border-t border-gray-100 p-3 text-xs text-gray-400 text-center flex-shrink-0">
-        请先设置人类身份（👤 页面）才能发送私信
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch, nextTick, onMounted } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { usePincerStore } from '../stores/pincer'
 import { fetchAgentMessages, sendDM } from '../api'
 
 const store = usePincerStore()
-const selectedConvo = ref(null)
+const selectedConvo = ref(null)        // B — recipient
 const convoEl = ref(null)
 const dmInput = ref('')
 const dmSending = ref(false)
 const loadingHistory = ref(false)
+const localMsgs = ref([])             // merged conversation messages
 
-// "我"的视角 agent id：优先用 selectedAgentId（视角切换），其次 humanAgentId
+// A — sender perspective: selectedAgentId || humanAgentId
 const currentSenderId = computed(() =>
   store.selectedAgentId || store.humanAgentId || null
 )
@@ -123,41 +126,71 @@ const otherAgents = computed(() => {
 
 // When activeDmAgentId changes (from AgentCards click), open that convo
 watch(() => store.activeDmAgentId, (id) => {
-  if (id) selectConvo(id)
+  if (id) selectRecipient(id)
 })
 
-// When perspective changes, reload history
-watch(currentSenderId, async (newId) => {
-  if (newId) await loadHistory(newId)
-})
-
-onMounted(async () => {
-  if (currentSenderId.value) {
-    await loadHistory(currentSenderId.value)
+// When both sender AND recipient are set, load conversation
+watch(
+  [currentSenderId, selectedConvo],
+  ([senderA, recipientB]) => {
+    if (senderA && recipientB) loadConversation(senderA, recipientB)
+    else localMsgs.value = []
   }
-})
+)
 
-async function loadHistory(agentId) {
+/**
+ * Load two-way conversation between A (sender) and B (recipient):
+ * - GET /agents/A/messages?from=B  → what B said to A
+ * - GET /agents/B/messages?from=A  → what A said to B
+ * Merge + sort by created_at
+ */
+async function loadConversation(senderA, recipientB) {
   loadingHistory.value = true
+  localMsgs.value = []
   try {
-    const msgs = await fetchAgentMessages(agentId, 100)
-    const arr = Array.isArray(msgs) ? msgs : (msgs.messages || [])
-    // Group by from_agent_id (messages received by me)
-    const grouped = {}
-    for (const msg of arr) {
-      const key = msg.from_agent_id || 'unknown'
-      if (!grouped[key]) grouped[key] = []
-      grouped[key].push(msg)
-    }
-    // Merge into store.dms (don't overwrite outgoing messages)
-    for (const [key, msgList] of Object.entries(grouped)) {
-      store.mergeDMs(key, msgList)
-    }
+    const [fromB, fromA] = await Promise.all([
+      fetchAgentMessages(senderA, { from: recipientB, limit: 100 }),
+      fetchAgentMessages(recipientB, { from: senderA, limit: 100 }),
+    ])
+    const aArr = Array.isArray(fromB) ? fromB : (fromB.messages || [])
+    const bArr = Array.isArray(fromA) ? fromA : (fromA.messages || [])
+    // Deduplicate by id, sort by created_at
+    const all = [...aArr, ...bArr]
+    const seen = new Set()
+    const deduped = all.filter(m => {
+      if (seen.has(m.id)) return false
+      seen.add(m.id)
+      return true
+    })
+    deduped.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    localMsgs.value = deduped
   } catch (e) {
-    console.warn('Failed to load DM history:', e.message)
+    console.warn('Failed to load DM conversation:', e.message)
   } finally {
     loadingHistory.value = false
+    await nextTick()
+    scrollToBottom()
   }
+}
+
+const convoMsgs = computed(() => localMsgs.value)
+
+watch(convoMsgs, async () => {
+  await nextTick()
+  scrollToBottom()
+})
+
+function scrollToBottom() {
+  if (convoEl.value) convoEl.value.scrollTop = convoEl.value.scrollHeight
+}
+
+async function selectRecipient(id) {
+  selectedConvo.value = id
+}
+
+// A's message: from_agent_id === sender A
+function isMyMsg(msg) {
+  return msg.from_agent_id === currentSenderId.value
 }
 
 const agentNameMap = computed(() => {
@@ -167,29 +200,6 @@ const agentNameMap = computed(() => {
   }
   return map
 })
-
-const convoMsgs = computed(() => {
-  if (!selectedConvo.value) return []
-  return store.dms[selectedConvo.value] || []
-})
-
-watch(convoMsgs, async () => {
-  await nextTick()
-  if (convoEl.value) convoEl.value.scrollTop = convoEl.value.scrollHeight
-})
-
-async function selectConvo(id) {
-  selectedConvo.value = id
-  // Scroll after DOM update
-  await nextTick()
-  if (convoEl.value) convoEl.value.scrollTop = convoEl.value.scrollHeight
-}
-
-// isMyMsg: use current perspective agent (not just humanAgentId)
-function isMyMsg(msg) {
-  const myId = currentSenderId.value
-  return msg.from_agent_id === myId || msg.to_agent_id !== myId
-}
 
 function agentName(id) {
   if (!id) return 'Unknown'
@@ -218,11 +228,23 @@ function formatTime(ts) {
 
 async function sendDmMsg() {
   const text = dmInput.value.trim()
-  if (!text || !selectedConvo.value || !currentSenderId.value) return
+  const senderA = currentSenderId.value
+  const recipientB = selectedConvo.value
+  if (!text || !senderA || !recipientB) return
   dmSending.value = true
   try {
-    await sendDM(currentSenderId.value, selectedConvo.value, text)
-    store.addOutgoingDM(selectedConvo.value, text)
+    await sendDM(senderA, recipientB, text)
+    // Optimistic: add outgoing message locally
+    localMsgs.value = [
+      ...localMsgs.value,
+      {
+        id: `local-${Date.now()}`,
+        from_agent_id: senderA,
+        to_agent_id: recipientB,
+        payload: { text },
+        created_at: new Date().toISOString(),
+      },
+    ]
     dmInput.value = ''
   } catch (e) {
     console.error('DM failed', e)
