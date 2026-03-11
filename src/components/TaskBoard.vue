@@ -1,8 +1,19 @@
 <template>
   <div class="flex flex-col h-full">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-4 flex-shrink-0">
-      <h2 class="font-semibold text-gray-700">任务看板</h2>
+    <div class="flex items-center justify-between mb-4 flex-shrink-0 gap-3 flex-wrap">
+      <div class="flex items-center gap-2">
+        <h2 class="font-semibold text-gray-700">任务看板</h2>
+        <!-- Project filter -->
+        <select
+          v-model="selectedProjectId"
+          class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white text-gray-600"
+        >
+          <option value="">全部项目</option>
+          <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
+          <option value="__none__">未分类</option>
+        </select>
+      </div>
       <button
         v-if="store.humanAgentId"
         @click="showModal = true"
@@ -199,10 +210,22 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { usePincerStore } from '../stores/pincer'
-import { createTask, updateTaskStatus, fetchAllTasks } from '../api'
+import { createTask, updateTaskStatus, fetchAllTasks, fetchProjects } from '../api'
 import { usePolling } from '../composables/usePolling'
 
 const store = usePincerStore()
+
+// ── Projects ──────────────────────────────────────────────────
+const projects = ref([])
+const selectedProjectId = ref('')
+
+async function loadProjects() {
+  try {
+    const data = await fetchProjects()
+    projects.value = Array.isArray(data) ? data : (data.projects || [])
+  } catch {}
+}
+loadProjects()
 
 // Fetch all tasks (not just active) for Kanban
 const allTasks = ref([])
@@ -227,7 +250,10 @@ const columns = [
 ]
 
 const visibleTasks = computed(() => {
-  return allTasks.value.length ? allTasks.value : store.tasks
+  const tasks = allTasks.value.length ? allTasks.value : store.tasks
+  if (!selectedProjectId.value) return tasks
+  if (selectedProjectId.value === '__none__') return tasks.filter(t => !t.project_id)
+  return tasks.filter(t => t.project_id === selectedProjectId.value)
 })
 
 function tasksByStatus(status) {
