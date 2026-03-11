@@ -295,10 +295,9 @@ export const usePincerStore = defineStore('pincer', () => {
       inboxWsConnect()
     }
 
-    // Light fallback: keep agents + tasks fresh
+    // Light fallback: keep agents fresh (tasks managed by TaskBoard component)
     fallbackTimer = setInterval(() => {
       refreshAgents()
-      refreshTasks()
     }, FALLBACK_INTERVAL)
   }
 
