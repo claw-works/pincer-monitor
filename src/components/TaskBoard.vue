@@ -296,12 +296,14 @@ async function onDrop(e, newStatus) {
   const task = visibleTasks.value.find(t => t.id === taskId)
   if (!task || task.status === newStatus) return
   // Optimistic update
+  const oldStatus = task.status
   task.status = newStatus
   try {
-    await updateTaskStatus(taskId, newStatus)
+    await updateTaskStatus(taskId, newStatus, store.humanAgentId)
     await refreshAllTasks()
   } catch (err) {
     console.error('Failed to update task status:', err)
+    task.status = oldStatus
     await refreshAllTasks()
   }
 }

@@ -52,9 +52,20 @@ export const sendDM = (fromAgentId, toAgentId, text) =>
 export const createTask = (fields) =>
   getClient().post('/api/v1/tasks', fields).then(r => r.data)
 
-// Update task status (for Kanban drag & drop)
-export const updateTaskStatus = (taskId, status) =>
-  getClient().put(`/api/v1/tasks/${taskId}`, { status }).then(r => r.data)
+// Update task status (for Kanban drag & drop) — uses proper sub-path API
+export const updateTaskStatus = (taskId, newStatus, agentId, extra = {}) => {
+  const client = getClient()
+  if (newStatus === 'assigned') {
+    return client.patch(`/api/v1/tasks/${taskId}/claim`, { agent_id: agentId }).then(r => r.data)
+  } else if (newStatus === 'running') {
+    return client.patch(`/api/v1/tasks/${taskId}/start`).then(r => r.data)
+  } else if (newStatus === 'done') {
+    return client.patch(`/api/v1/tasks/${taskId}/complete`, { result: extra.result || '' }).then(r => r.data)
+  } else if (newStatus === 'failed') {
+    return client.patch(`/api/v1/tasks/${taskId}/fail`, { error: extra.error || '' }).then(r => r.data)
+  }
+  return Promise.reject(new Error(`Unknown status: ${newStatus}`))
+}
 
 // Fetch all tasks (no status filter)
 export const fetchAllTasks = () =>
