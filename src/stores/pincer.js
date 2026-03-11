@@ -254,10 +254,10 @@ export const usePincerStore = defineStore('pincer', () => {
   )
 
   // Inbox WebSocket — real-time DMs for the human user
+  const lastInboxEvent = ref(null)
+
   function handleInboxWsMessage(msg) {
-    // hub.Message format: { id, type, from, to, payload, timestamp, ... }
     const fromId = msg.from || msg.from_agent_id || msg.sender_agent_id || 'unknown'
-    // Normalise to the same shape used by HTTP inbox polling
     const normalised = {
       id: msg.id,
       from_agent_id: fromId,
@@ -266,6 +266,7 @@ export const usePincerStore = defineStore('pincer', () => {
       created_at: msg.timestamp || new Date().toISOString(),
     }
     accumulateDMs([normalised])
+    lastInboxEvent.value = normalised  // notify DMView
   }
 
   const { connect: inboxWsConnect, disconnect: inboxWsDisconnect } = useInboxWS(
@@ -317,6 +318,7 @@ export const usePincerStore = defineStore('pincer', () => {
     selectedAgentId, selectedAgent, selectAgent,
     activeDmAgentId, openDM,
     dms, addOutgoingDM, mergeDMs,
+    lastInboxEvent,
     refresh, refreshAgents, refreshTasks, refreshMessages, refreshDMs,
     startPolling, stopPolling,
     // Allow components to connect inbox WS after humanAgentId is set

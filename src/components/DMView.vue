@@ -4,25 +4,12 @@
     <!-- Left: 选择器 + 伙伴列表 -->
     <div class="w-52 border-r border-gray-100 flex flex-col flex-shrink-0">
 
-      <!-- Agent A selector -->
-      <div class="px-3 py-2 border-b border-gray-100 flex-shrink-0">
-        <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">我（Agent A）</div>
-        <select
-          v-model="agentAId"
-          class="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white"
-        >
-          <option value="">— 选择视角 —</option>
-          <optgroup label="人类">
-            <option v-for="a in humanAgents" :key="a.id" :value="a.id">
-              👤 {{ a.name || a.id.slice(0,8) }}
-            </option>
-          </optgroup>
-          <optgroup label="AI Agents">
-            <option v-for="a in aiAgents" :key="a.id" :value="a.id">
-              🐾 {{ a.name || a.id.slice(0,8) }}
-            </option>
-          </optgroup>
-        </select>
+      <!-- Current identity (read-only, controlled by global perspective switcher) -->
+      <div class="px-3 py-2 border-b border-gray-100 flex-shrink-0 flex items-center gap-2">
+        <span class="text-xs text-gray-400">视角：</span>
+        <span class="text-xs font-medium text-gray-700">
+          {{ agentAId ? (isHumanSender ? '👤 ' : '🐾 ') + agentName(agentAId) : '未选择' }}
+        </span>
       </div>
 
       <!-- Partner list (Agent B) -->
@@ -75,7 +62,7 @@
       <!-- Messages -->
       <div class="flex-1 overflow-y-auto p-4 space-y-3" ref="convoEl">
         <div v-if="!agentAId" class="text-center text-gray-400 text-sm py-12">
-          请先在左上角选择视角（Agent A）
+          请在顶部切换视角身份
         </div>
         <div v-else-if="!selectedPartnerId" class="text-center text-gray-400 text-sm py-12">
           从左侧选择对话对象
@@ -107,7 +94,7 @@
 
       <!-- Send box — human only -->
       <div class="border-t border-gray-100 p-3 flex-shrink-0">
-        <div v-if="!agentAId" class="text-xs text-gray-400 text-center py-1">左上角选择视角后才能操作</div>
+        <div v-if="!agentAId" class="text-xs text-gray-400 text-center py-1">切换视角后才能操作</div>
         <div v-else-if="!isHumanSender" class="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 text-center">
           ⚠ 当前为 AI 视角（只读），切换到人类视角才能发私信
         </div>
@@ -133,7 +120,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { usePincerStore } from '../stores/pincer'
 import { fetchConversation, sendDM } from '../api'
 
@@ -248,4 +235,37 @@ async function sendDmMsg() {
     dmSending.value = false
   }
 }
+
+// Auto-refresh conversation
+// - Human sender: listen to store.lastInboxEvent (set by inbox WS) → reload on new DM
+// - Agent sender: poll every 30s
+let pollTimer = null
+
+function startAutoRefresh() {
+  stopAutoRefresh()
+  if (!agentAId.value || !selectedPartnerId.value) return
+  if (!isHumanSender.value) {
+    // agent-agent view: slow poll
+    pollTimer = setInterval(() => {
+      loadConversation(agentAId.value, selectedPartnerId.value)
+    }, 30000)
+  }
+}
+
+function stopAutoRefresh() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+}
+
+// When human sender: react to inbox WS events
+watch(() => store.lastInboxEvent, (evt) => {
+  if (!evt || !isHumanSender.value || !selectedPartnerId.value) return
+  const relevant = evt.from_agent_id === selectedPartnerId.value || evt.to_agent_id === selectedPartnerId.value
+  if (relevant) loadConversation(agentAId.value, selectedPartnerId.value)
+})
+
+// Restart poll timer when conversation changes
+watch([agentAId, selectedPartnerId, isHumanSender], () => startAutoRefresh())
+
+onMounted(() => startAutoRefresh())
+onUnmounted(() => stopAutoRefresh())
 </script>
