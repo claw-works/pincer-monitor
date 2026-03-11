@@ -59,6 +59,21 @@
         <span class="text-xs text-gray-400">{{ visibleTasks.length }} 个任务</span>
       </div>
 
+      <!-- Tab bar (only when a project is selected) -->
+      <div v-if="selectedProject" class="flex gap-1 mb-4 border-b border-gray-100 pb-0">
+        <button
+          v-for="tab in ['tasks', 'reports']"
+          :key="tab"
+          @click="activeTab = tab; tab === 'reports' && loadReports()"
+          :class="[
+            'px-3 py-1.5 text-xs font-medium rounded-t transition',
+            activeTab === tab
+              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500'
+              : 'text-gray-500 hover:text-gray-700'
+          ]"
+        >{{ tab === 'tasks' ? '📋 任务' : '📊 日报' }}</button>
+      </div>
+
       <!-- Project meta: repo + overview -->
       <div v-if="selectedProject" class="mb-4 bg-gray-50 rounded-xl border border-gray-100 p-4 space-y-2 text-sm">
         <div v-if="selectedProject.description" class="text-gray-600">{{ selectedProject.description }}</div>
@@ -75,15 +90,15 @@
       </div>
 
       <!-- Loading tasks -->
-      <div v-if="loadingTasks" class="text-sm text-gray-400">加载中…</div>
+      <div v-if="loadingTasks && activeTab === 'tasks'" class="text-sm text-gray-400">加载中…</div>
 
       <!-- No tasks -->
-      <div v-else-if="visibleTasks.length === 0" class="text-sm text-gray-400 italic py-8 text-center">
+      <div v-else-if="activeTab === 'tasks' && visibleTasks.length === 0" class="text-sm text-gray-400 italic py-8 text-center">
         该分类暂无任务
       </div>
 
       <!-- Task rows -->
-      <div v-else class="space-y-2">
+      <div v-else-if="activeTab === 'tasks'" class="space-y-2">
         <div
           v-for="task in visibleTasks"
           :key="task.id"
@@ -101,6 +116,24 @@
                 → {{ agentName(task.assigned_agent_id) }}
               </span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reports tab -->
+      <div v-if="selectedProject && activeTab === 'reports'">
+        <div v-if="loadingReports" class="text-sm text-gray-400 py-4">加载日报中…</div>
+        <div v-else-if="reports.length === 0" class="text-sm text-gray-400 italic py-8 text-center">
+          暂无日报（每天 23:30 生成一次）
+        </div>
+        <div v-else class="space-y-3">
+          <div
+            v-for="report in reports"
+            :key="report.date"
+            class="bg-white rounded-xl border border-gray-100 px-4 py-3 shadow-sm"
+          >
+            <div class="text-xs font-semibold text-indigo-600 mb-2">📅 {{ report.date }}</div>
+            <p class="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">{{ report.content }}</p>
           </div>
         </div>
       </div>
@@ -150,7 +183,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { usePincerStore } from '../stores/pincer'
-import { fetchProjects, fetchProjectTasks } from '../api'
+import { fetchProjects, fetchProjectTasks, fetchProjectReports } from '../api'
 
 const store = usePincerStore()
 
@@ -161,6 +194,9 @@ const projectTasks = ref({})
 const loadingTasks = ref(false)
 const projectTaskCounts = ref({})
 const detailTask = ref(null)
+const activeTab = ref('tasks')
+const reports = ref([])
+const loadingReports = ref(false)
 
 // Tasks with no project_id from the global store
 const unclassifiedTasks = computed(() =>
@@ -192,6 +228,8 @@ onMounted(async () => {
 
 async function selectProject(project) {
   selectedProject.value = project
+  activeTab.value = 'tasks'
+  reports.value = []
   if (!project) return
   if (projectTasks.value[project.id] !== undefined) return
 
@@ -228,6 +266,19 @@ function statusBadge(status) {
     'bg-green-100 text-green-700': status === 'done',
     'bg-red-100 text-red-700': status === 'failed',
     'bg-gray-100 text-gray-600': !['pending', 'running', 'done', 'failed'].includes(status),
+  }
+}
+
+async function loadReports() {
+  if (!selectedProject.value) return
+  loadingReports.value = true
+  try {
+    const data = await fetchProjectReports(selectedProject.value.id)
+    reports.value = Array.isArray(data) ? data : (data.reports || [])
+  } catch (e) {
+    reports.value = []
+  } finally {
+    loadingReports.value = false
   }
 }
 </script>

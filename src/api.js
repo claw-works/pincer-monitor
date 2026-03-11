@@ -18,6 +18,8 @@ export const fetchMessages = (roomId, { limit = 30, since } = {}) => {
 }
 export const fetchRooms = () => getClient().get('/api/v1/rooms').then(r => r.data)
 export const fetchProjects = () => getClient().get('/api/v1/projects').then(r => r.data)
+export const fetchProjectReports = (projectId, limit = 30) =>
+  getClient().get(`/api/v1/projects/${projectId}/reports?limit=${limit}`).then(r => r.data)
 export const fetchProjectTasks = (projectId) =>
   getClient().get(`/api/v1/projects/${projectId}/tasks`).then(r => r.data)
 export const createProject = (name) =>
