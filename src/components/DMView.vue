@@ -57,10 +57,48 @@
           <span v-else class="text-gray-400">请选择双方</span>
         </span>
         <span v-if="loadingHistory" class="text-xs text-gray-400 ml-auto">加载中…</span>
+        <button @click="dmSearchOpen = !dmSearchOpen; dmSearchOpen || clearDmSearch()" class="text-xs text-gray-400 hover:text-indigo-500 ml-auto transition">🔍</button>
       </div>
 
-      <!-- Messages -->
+      <!-- DM Search bar -->
+      <div v-if="dmSearchOpen" class="px-3 py-2 border-b border-gray-100 flex gap-2">
+        <input
+          v-model="dmSearchQ"
+          @keydown.enter="doDmSearch"
+          @keydown.escape="clearDmSearch(); dmSearchOpen = false"
+          placeholder="搜索对话…"
+          class="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+        />
+        <button @click="doDmSearch" class="text-xs px-2 py-1.5 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600">搜索</button>
+        <button @click="clearDmSearch(); dmSearchOpen = false" class="text-xs px-2 text-gray-400">✕</button>
+      </div>
+
+      <!-- Messages (search or normal) -->
       <div class="flex-1 overflow-y-auto p-4 space-y-3" ref="convoEl">
+        <!-- Search results -->
+        <template v-if="dmSearchResults !== null">
+          <div v-if="dmSearchLoading" class="text-center text-gray-400 py-8 text-sm">搜索中…</div>
+          <div v-else-if="!dmSearchResults.length" class="text-center text-gray-400 py-8 text-sm">无结果</div>
+          <template v-else>
+            <div v-for="msg in dmSearchResults" :key="msg.id" class="flex gap-2 items-start">
+              <div :class="['w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0', avatarColor(msg.from_agent_id)]">
+                {{ (agentName(msg.from_agent_id) || '?')[0].toUpperCase() }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline gap-1.5 mb-0.5">
+                  <span class="text-xs font-semibold text-gray-700">{{ agentName(msg.from_agent_id) }}</span>
+                  <span class="text-[10px] text-gray-400">{{ formatTime(msg.created_at) }}</span>
+                </div>
+                <p class="text-xs text-gray-800 whitespace-pre-wrap break-words bg-gray-50 rounded-xl px-3 py-2">{{ msg.payload?.text }}</p>
+              </div>
+            </div>
+            <div v-if="dmSearchHasMore" class="text-center pt-2">
+              <button @click="loadMoreDmSearch" class="text-xs text-indigo-500 hover:text-indigo-700 px-3 py-1 border border-indigo-200 rounded-full">加载更多（共 {{ dmSearchTotal }} 条）</button>
+            </div>
+          </template>
+        </template>
+        <!-- Normal conversation -->
+        <template v-else>
         <div v-if="!agentAId" class="text-center text-gray-400 text-sm py-12">
           请在顶部切换视角身份
         </div>
@@ -90,6 +128,7 @@
             <div class="text-xs opacity-50 mt-1 text-right">{{ formatTime(msg.created_at) }}</div>
           </div>
         </div>
+        </template>  <!-- end normal conversation -->
       </div>
 
       <!-- Send box — human only -->
@@ -122,7 +161,7 @@
 <script setup>
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { usePincerStore } from '../stores/pincer'
-import { fetchConversation, sendDM } from '../api'
+import { fetchConversation, sendDM, searchDMMessages } from '../api'
 
 const store = usePincerStore()
 
@@ -288,4 +327,51 @@ watch([agentAId, selectedPartnerId, isHumanSender], () => startAutoRefresh())
 
 onMounted(() => startAutoRefresh())
 onUnmounted(() => stopAutoRefresh())
+
+// DM Search
+const dmSearchOpen = ref(false)
+const dmSearchQ = ref('')
+const dmSearchResults = ref(null)
+const dmSearchTotal = ref(0)
+const dmSearchOffset = ref(0)
+const dmSearchLoading = ref(false)
+const DM_SEARCH_LIMIT = 20
+const dmSearchHasMore = computed(() => dmSearchResults.value && dmSearchResults.value.length < dmSearchTotal.value)
+
+async function doDmSearch() {
+  const q = dmSearchQ.value.trim()
+  if (!q || !agentAId.value || !selectedPartnerId.value) return
+  dmSearchLoading.value = true
+  dmSearchOffset.value = 0
+  dmSearchResults.value = []
+  try {
+    const data = await searchDMMessages(agentAId.value, selectedPartnerId.value, q, { limit: DM_SEARCH_LIMIT, offset: 0 })
+    dmSearchResults.value = data.items || []
+    dmSearchTotal.value = data.total || 0
+  } finally {
+    dmSearchLoading.value = false
+  }
+}
+
+async function loadMoreDmSearch() {
+  const q = dmSearchQ.value.trim()
+  if (!q || dmSearchLoading.value) return
+  dmSearchLoading.value = true
+  try {
+    const nextOffset = dmSearchOffset.value + DM_SEARCH_LIMIT
+    const data = await searchDMMessages(agentAId.value, selectedPartnerId.value, q, { limit: DM_SEARCH_LIMIT, offset: nextOffset })
+    dmSearchResults.value = [...(dmSearchResults.value || []), ...(data.items || [])]
+    dmSearchTotal.value = data.total || 0
+    dmSearchOffset.value = nextOffset
+  } finally {
+    dmSearchLoading.value = false
+  }
+}
+
+function clearDmSearch() {
+  dmSearchQ.value = ''
+  dmSearchResults.value = null
+  dmSearchTotal.value = 0
+  dmSearchOffset.value = 0
+}
 </script>

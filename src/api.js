@@ -73,6 +73,13 @@ export const updateTaskStatus = (taskId, newStatus, agentId, extra = {}) => {
 export const fetchAllTasks = ({ limit = 50, offset = 0 } = {}) =>
   getClient().get('/api/v1/tasks', { params: { limit, offset } }).then(r => r.data)
 
+// Search messages
+export const searchRoomMessages = (roomId, q, { limit = 20, offset = 0 } = {}) =>
+  getClient().get(`/api/v1/rooms/${roomId}/messages/search`, { params: { q, limit, offset } }).then(r => r.data)
+
+export const searchDMMessages = (agentA, agentB, q, { limit = 20, offset = 0 } = {}) =>
+  getClient().get('/api/v1/messages/search', { params: { q, agent_a: agentA, agent_b: agentB, limit, offset } }).then(r => r.data)
+
 // Bidirectional conversation between two agents
 export const fetchConversation = (a, b, limit = 100) =>
   getClient().get('/api/v1/conversations', { params: { a, b, limit } }).then(r => r.data)

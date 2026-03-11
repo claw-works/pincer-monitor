@@ -1,14 +1,54 @@
 <template>
   <div class="bg-white rounded-xl shadow p-4 flex flex-col h-full">
-    <div class="font-semibold text-gray-700 mb-3 flex items-center justify-between">
+    <div class="font-semibold text-gray-700 mb-3 flex items-center justify-between gap-2">
       <span>消息流</span>
-      <span v-if="store.selectedAgentId" class="text-xs text-indigo-500">
-        以 {{ agentName(store.selectedAgentId) }} 视角查看
-      </span>
-      <span v-else class="text-xs text-gray-400">点击 Agent 卡片切换视角</span>
+      <!-- Search toggle -->
+      <button @click="searchOpen = !searchOpen; searchOpen || clearSearch()" class="text-xs text-gray-400 hover:text-indigo-500 transition">🔍</button>
     </div>
 
-    <div class="flex-1 overflow-y-auto space-y-2 pr-1" ref="scrollEl">
+    <!-- Search bar -->
+    <div v-if="searchOpen" class="mb-3 flex gap-2">
+      <input
+        v-model="searchQ"
+        @keydown.enter="doSearch"
+        @keydown.escape="clearSearch(); searchOpen = false"
+        placeholder="搜索消息…"
+        class="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+      />
+      <button @click="doSearch" class="text-xs px-2 py-1.5 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600">搜索</button>
+      <button @click="clearSearch(); searchOpen = false" class="text-xs px-2 text-gray-400 hover:text-gray-600">✕</button>
+    </div>
+
+    <!-- Search results -->
+    <div v-if="searchResults !== null" class="flex-1 overflow-y-auto space-y-2 pr-1">
+      <div v-if="searchLoading" class="text-center text-gray-400 py-8 text-sm">搜索中…</div>
+      <div v-else-if="!searchResults.length" class="text-center text-gray-400 py-8 text-sm">无结果</div>
+      <template v-else>
+        <div
+          v-for="msg in searchResults"
+          :key="msg.id"
+          class="flex gap-2 items-start"
+        >
+          <div :class="['w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0', avatarColor(msg.sender_agent_id)]">
+            {{ (agentName(msg.sender_agent_id) || '?')[0].toUpperCase() }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline gap-1.5 mb-0.5">
+              <span class="text-xs font-semibold text-gray-700">{{ agentName(msg.sender_agent_id) }}</span>
+              <span class="text-[10px] text-gray-400">{{ formatTime(msg.created_at) }}</span>
+            </div>
+            <p class="text-xs text-gray-800 whitespace-pre-wrap break-words bg-gray-50 rounded-lg px-2 py-1.5">{{ msg.content }}</p>
+          </div>
+        </div>
+        <div v-if="searchHasMore" class="text-center pt-2">
+          <button @click="loadMoreSearch" class="text-xs text-indigo-500 hover:text-indigo-700 px-3 py-1 border border-indigo-200 rounded-full">加载更多（共 {{ searchTotal }} 条）</button>
+        </div>
+      </template>
+    </div>
+    </div>
+
+    <!-- Normal message list -->
+    <div v-else class="flex-1 overflow-y-auto space-y-2 pr-1" ref="scrollEl">
       <div v-if="!sorted.length" class="text-center text-gray-400 py-8 text-sm">No messages</div>
 
       <div
@@ -49,7 +89,7 @@
           />
         </div>
       </div>
-    </div>
+    </div>  <!-- end normal message list -->
     <!-- Chat input / perspective indicator -->
     <div class="mt-3 relative">
       <!-- AI perspective: read-only notice -->
@@ -120,7 +160,7 @@ import DOMPurify from 'dompurify'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import { usePincerStore } from '../stores/pincer'
-import { sendRoomMessage } from '../api'
+import { sendRoomMessage, searchRoomMessages } from '../api'
 import { getRoomId } from '../config'
 
 // Configure marked with syntax highlighting
@@ -300,5 +340,52 @@ async function sendMessage() {
   } finally {
     sending.value = false
   }
+}
+
+// Search
+const searchOpen = ref(false)
+const searchQ = ref('')
+const searchResults = ref(null)
+const searchTotal = ref(0)
+const searchOffset = ref(0)
+const searchLoading = ref(false)
+const SEARCH_LIMIT = 20
+const searchHasMore = computed(() => searchResults.value && searchResults.value.length < searchTotal.value)
+
+async function doSearch() {
+  const q = searchQ.value.trim()
+  if (!q) return
+  searchLoading.value = true
+  searchOffset.value = 0
+  searchResults.value = []
+  try {
+    const data = await searchRoomMessages(getRoomId(), q, { limit: SEARCH_LIMIT, offset: 0 })
+    searchResults.value = data.items || []
+    searchTotal.value = data.total || 0
+  } finally {
+    searchLoading.value = false
+  }
+}
+
+async function loadMoreSearch() {
+  const q = searchQ.value.trim()
+  if (!q || searchLoading.value) return
+  searchLoading.value = true
+  try {
+    const nextOffset = searchOffset.value + SEARCH_LIMIT
+    const data = await searchRoomMessages(getRoomId(), q, { limit: SEARCH_LIMIT, offset: nextOffset })
+    searchResults.value = [...(searchResults.value || []), ...(data.items || [])]
+    searchTotal.value = data.total || 0
+    searchOffset.value = nextOffset
+  } finally {
+    searchLoading.value = false
+  }
+}
+
+function clearSearch() {
+  searchQ.value = ''
+  searchResults.value = null
+  searchTotal.value = 0
+  searchOffset.value = 0
 }
 </script>
