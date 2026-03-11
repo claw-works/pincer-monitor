@@ -58,7 +58,7 @@ export const updateTaskStatus = (taskId, status) =>
 
 // Fetch all tasks (no status filter)
 export const fetchAllTasks = () =>
-  getClient().get('/api/v1/tasks', { params: { status: 'all' } }).then(r => r.data)
+  getClient().get('/api/v1/tasks').then(r => r.data)
 
 // Bidirectional conversation between two agents
 export const fetchConversation = (a, b, limit = 100) =>
