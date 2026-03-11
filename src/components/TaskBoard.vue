@@ -227,11 +227,7 @@ const columns = [
 ]
 
 const visibleTasks = computed(() => {
-  const tasks = allTasks.value.length ? allTasks.value : store.tasks
-  if (!store.selectedAgentId) return tasks
-  return tasks.filter(t =>
-    t.assigned_agent_id === store.selectedAgentId || !t.assigned_agent_id
-  )
+  return allTasks.value.length ? allTasks.value : store.tasks
 })
 
 function tasksByStatus(status) {
