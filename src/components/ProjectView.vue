@@ -50,13 +50,28 @@
       </button>
     </div>
 
-    <!-- Right: task list for selected project -->
+    <!-- Right: project info + task list -->
     <div class="flex-1 overflow-y-auto p-5">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center justify-between mb-3">
         <h3 class="font-semibold text-gray-800">
           {{ selectedProject ? selectedProject.name : '未分类任务' }}
         </h3>
         <span class="text-xs text-gray-400">{{ visibleTasks.length }} 个任务</span>
+      </div>
+
+      <!-- Project meta: repo + overview -->
+      <div v-if="selectedProject" class="mb-4 bg-gray-50 rounded-xl border border-gray-100 p-4 space-y-2 text-sm">
+        <div v-if="selectedProject.description" class="text-gray-600">{{ selectedProject.description }}</div>
+        <div v-if="selectedProject.repo" class="flex items-center gap-1.5">
+          <span class="text-xs text-gray-400 font-semibold uppercase tracking-wide">Repo</span>
+          <a :href="selectedProject.repo" target="_blank" class="text-xs text-indigo-500 hover:underline truncate">
+            {{ selectedProject.repo }}
+          </a>
+        </div>
+        <div v-if="selectedProject.overview">
+          <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Overview</p>
+          <p class="text-xs text-gray-600 whitespace-pre-wrap bg-white rounded-lg px-3 py-2 border border-gray-100">{{ selectedProject.overview }}</p>
+        </div>
       </div>
 
       <!-- Loading tasks -->
@@ -72,7 +87,8 @@
         <div
           v-for="task in visibleTasks"
           :key="task.id"
-          class="bg-white rounded-xl border border-gray-100 px-4 py-3 flex items-start gap-3 shadow-sm"
+          class="bg-white rounded-xl border border-gray-100 px-4 py-3 flex items-start gap-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          @click="detailTask = task"
         >
           <span :class="statusDot(task.status)" class="mt-1.5 w-2 h-2 rounded-full flex-shrink-0"></span>
           <div class="flex-1 min-w-0">
@@ -90,10 +106,49 @@
       </div>
     </div>
   </div>
+
+  <!-- Task Detail Modal -->
+  <Teleport to="body">
+    <div
+      v-if="detailTask"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4"
+      @click.self="detailTask = null"
+    >
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto">
+        <div class="flex items-start justify-between mb-4">
+          <h3 class="text-base font-bold text-gray-800 pr-4">{{ detailTask.title }}</h3>
+          <button @click="detailTask = null" class="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+        </div>
+        <div class="space-y-3 text-sm">
+          <div v-if="detailTask.description">
+            <p class="text-xs font-semibold text-gray-400 uppercase mb-1">描述</p>
+            <p class="text-gray-700 whitespace-pre-wrap">{{ detailTask.description }}</p>
+          </div>
+          <div v-if="detailTask.guidance">
+            <p class="text-xs font-semibold text-gray-400 uppercase mb-1">执行指导</p>
+            <p class="text-gray-700 whitespace-pre-wrap bg-gray-50 rounded-lg p-3 text-xs font-mono">{{ detailTask.guidance }}</p>
+          </div>
+          <div v-if="detailTask.acceptance_criteria">
+            <p class="text-xs font-semibold text-gray-400 uppercase mb-1">验收标准</p>
+            <p class="text-gray-700 whitespace-pre-wrap">{{ detailTask.acceptance_criteria }}</p>
+          </div>
+          <div v-if="detailTask.result">
+            <p class="text-xs font-semibold text-gray-400 uppercase mb-1">结果</p>
+            <p class="text-gray-700 whitespace-pre-wrap bg-green-50 rounded-lg p-3 text-xs">{{ detailTask.result }}</p>
+          </div>
+          <div class="flex gap-4 text-xs text-gray-400 pt-2 border-t flex-wrap">
+            <span>状态：<span class="font-medium text-gray-600">{{ detailTask.status }}</span></span>
+            <span v-if="detailTask.assigned_agent_id">指派：{{ agentName(detailTask.assigned_agent_id) }}</span>
+            <span>更新：{{ new Date(detailTask.updated_at).toLocaleString('zh-CN') }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { usePincerStore } from '../stores/pincer'
 import { fetchProjects, fetchProjectTasks } from '../api'
 
@@ -101,10 +156,11 @@ const store = usePincerStore()
 
 const projects = ref([])
 const loading = ref(true)
-const selectedProject = ref(null) // null = 未分类
-const projectTasks = ref({}) // { projectId: [task, ...] }
+const selectedProject = ref(null)
+const projectTasks = ref({})
 const loadingTasks = ref(false)
 const projectTaskCounts = ref({})
+const detailTask = ref(null)
 
 // Tasks with no project_id from the global store
 const unclassifiedTasks = computed(() =>
