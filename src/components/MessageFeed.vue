@@ -83,9 +83,10 @@
           @mousedown.prevent="insertMention(agent)"
           class="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-50 text-left text-sm"
         >
-          <span v-if="agent.type === 'human'" class="text-blue-400 text-xs">👤</span>
+          <span v-if="agent.id === '__all__'" class="text-xs">📢</span>
+          <span v-else-if="agent.type === 'human'" class="text-blue-400 text-xs">👤</span>
           <span v-else class="text-gray-300 text-xs">🐾</span>
-          <span class="text-gray-800 font-medium">{{ agent.name || agent.id.slice(0, 8) }}</span>
+          <span class="text-gray-800 font-medium">{{ agent._label || agent.name || agent.id.slice(0, 8) }}</span>
         </button>
       </div>
       <div class="flex gap-2 items-end">
@@ -242,23 +243,25 @@ const mentionList = ref([])
 watch(inputText, (val) => localStorage.setItem(DRAFT_KEY, val))
 
 // @mention detection
+const ALL_MENTION = { id: '__all__', name: 'all', _label: '@all（@所有人）' }
+
 function onInput(e) {
   const val = inputText.value
   const cursor = e.target.selectionStart
-  // Find last '@' before cursor
   const before = val.slice(0, cursor)
   const atIdx = before.lastIndexOf('@')
   if (atIdx === -1) { mentionList.value = []; return }
   const query = before.slice(atIdx + 1).toLowerCase()
-  // Only show if no space in query (still typing the mention)
   if (query.includes(' ')) { mentionList.value = []; return }
-  mentionList.value = store.agents
+  const agentMatches = store.agents
     .filter(a => (a.name || a.id).toLowerCase().includes(query))
-    .slice(0, 6)
+    .slice(0, 5)
+  const allMatch = 'all'.includes(query) || '所有人'.includes(query)
+  mentionList.value = allMatch ? [ALL_MENTION, ...agentMatches] : agentMatches
 }
 
 function insertMention(agent) {
-  const name = agent.name || agent.id.slice(0, 8)
+  const name = agent.id === '__all__' ? 'all' : (agent.name || agent.id.slice(0, 8))
   const val = inputText.value
   const el = chatInputEl.value
   const cursor = el ? el.selectionStart : val.length

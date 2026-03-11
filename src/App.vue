@@ -174,18 +174,9 @@
           </div>
         </section>
 
-        <!-- Tasks — filtered by currentAgent if set -->
-        <section v-else-if="active === 'tasks'" class="flex-1 overflow-y-auto p-6">
-          <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-            Tasks
-            <span v-if="store.selectedAgent" class="text-gray-400 normal-case font-normal text-xs ml-1">
-              — {{ store.selectedAgent.name || store.selectedAgent.id?.slice(0,8) }} 的任务
-            </span>
-            <span v-else class="text-gray-400 normal-case font-normal text-xs ml-1">
-              ({{ store.tasks.length }} 个活跃)
-            </span>
-          </h2>
-          <TaskBoard />
+        <!-- Tasks -->
+        <section v-else-if="active === 'tasks'" class="flex-1 min-h-0 flex flex-col p-6">
+          <TaskBoard class="flex-1 min-h-0" />
         </section>
 
         <!-- Projects + Tasks (two-panel, fill height) -->
