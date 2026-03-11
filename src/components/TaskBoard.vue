@@ -79,6 +79,15 @@
     </div>
   </div>
 
+  <!-- Load more -->
+  <div v-if="hasMore || loadingMore" class="flex justify-center pt-3 pb-1">
+    <button
+      @click="loadMoreTasks"
+      :disabled="loadingMore"
+      class="text-xs text-indigo-500 hover:text-indigo-700 px-4 py-1.5 rounded-full border border-indigo-200 hover:border-indigo-400 transition disabled:opacity-50"
+    >{{ loadingMore ? '加载中…' : '加载更多' }}</button>
+  </div>
+
   <!-- Task Detail Modal -->
   <Teleport to="body">
     <div
@@ -227,17 +236,41 @@ async function loadProjects() {
 }
 loadProjects()
 
-// Fetch all tasks (not just active) for Kanban
+// Fetch all tasks (not just active) for Kanban — paginated
+const PAGE_SIZE = 50
 const allTasks = ref([])
+const taskOffset = ref(0)
+const hasMore = ref(false)
+const loadingMore = ref(false)
+
 async function refreshAllTasks() {
   try {
-    const result = await fetchAllTasks()
-    allTasks.value = Array.isArray(result) ? result : (result?.tasks || [])
+    taskOffset.value = 0
+    const result = await fetchAllTasks({ limit: PAGE_SIZE, offset: 0 })
+    const arr = Array.isArray(result) ? result : (result?.tasks || [])
+    allTasks.value = arr
+    hasMore.value = arr.length === PAGE_SIZE
   } catch {
-    // fallback to store tasks
     allTasks.value = store.tasks
+    hasMore.value = false
   }
 }
+
+async function loadMoreTasks() {
+  if (loadingMore.value || !hasMore.value) return
+  loadingMore.value = true
+  try {
+    const nextOffset = taskOffset.value + PAGE_SIZE
+    const result = await fetchAllTasks({ limit: PAGE_SIZE, offset: nextOffset })
+    const arr = Array.isArray(result) ? result : (result?.tasks || [])
+    allTasks.value = [...allTasks.value, ...arr]
+    taskOffset.value = nextOffset
+    hasMore.value = arr.length === PAGE_SIZE
+  } finally {
+    loadingMore.value = false
+  }
+}
+
 refreshAllTasks()
 usePolling(refreshAllTasks, 5000)
 

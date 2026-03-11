@@ -20,8 +20,8 @@ export const fetchRooms = () => getClient().get('/api/v1/rooms').then(r => r.dat
 export const fetchProjects = () => getClient().get('/api/v1/projects').then(r => r.data)
 export const fetchProjectReports = (projectId, limit = 30) =>
   getClient().get(`/api/v1/projects/${projectId}/reports?limit=${limit}`).then(r => r.data)
-export const fetchProjectTasks = (projectId) =>
-  getClient().get(`/api/v1/projects/${projectId}/tasks`).then(r => r.data)
+export const fetchProjectTasks = (projectId, { limit = 50, offset = 0 } = {}) =>
+  getClient().get(`/api/v1/projects/${projectId}/tasks`, { params: { limit, offset } }).then(r => r.data)
 export const createProject = (name) =>
   getClient().post('/api/v1/projects', { name }).then(r => r.data)
 export const fetchInbox = (agentId) =>
@@ -70,8 +70,8 @@ export const updateTaskStatus = (taskId, newStatus, agentId, extra = {}) => {
 }
 
 // Fetch all tasks (no status filter)
-export const fetchAllTasks = () =>
-  getClient().get('/api/v1/tasks').then(r => r.data)
+export const fetchAllTasks = ({ limit = 50, offset = 0 } = {}) =>
+  getClient().get('/api/v1/tasks', { params: { limit, offset } }).then(r => r.data)
 
 // Bidirectional conversation between two agents
 export const fetchConversation = (a, b, limit = 100) =>
