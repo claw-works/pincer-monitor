@@ -217,7 +217,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { usePincerStore } from './stores/pincer'
 import { isConfigured, clearConfig } from './config'
 import AgentCards from './components/AgentCards.vue'
@@ -230,7 +230,9 @@ import LoginPage from './components/LoginPage.vue'
 
 const store = usePincerStore()
 const configured = ref(isConfigured())
-const active = ref('room')
+const active = ref(localStorage.getItem('pincer_active_tab') || 'room')
+
+watch(active, (val) => localStorage.setItem('pincer_active_tab', val))
 
 const navItems = computed(() => [
   { key: 'room',     icon: '💬', label: 'Room',     badge: store.messages.length },

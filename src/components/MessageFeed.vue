@@ -233,10 +233,13 @@ function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-const inputText = ref('')
+const DRAFT_KEY = 'pincer_room_draft'
+const inputText = ref(localStorage.getItem(DRAFT_KEY) || '')
 const sending = ref(false)
 const chatInputEl = ref(null)
 const mentionList = ref([])
+
+watch(inputText, (val) => localStorage.setItem(DRAFT_KEY, val))
 
 // @mention detection
 function onInput(e) {
@@ -283,6 +286,7 @@ async function sendMessage() {
   try {
     await sendRoomMessage(getRoomId(), sender, text)
     inputText.value = ''
+    localStorage.removeItem(DRAFT_KEY)
     // Refresh to pick up the sent message if WS hasn't pushed it yet,
     // then explicitly scroll to bottom regardless of whether length changed.
     await store.refreshMessages()
