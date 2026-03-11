@@ -52,6 +52,14 @@ export const sendDM = (fromAgentId, toAgentId, text) =>
 export const createTask = (fields) =>
   getClient().post('/api/v1/tasks', fields).then(r => r.data)
 
+// Update task status (for Kanban drag & drop)
+export const updateTaskStatus = (taskId, status) =>
+  getClient().put(`/api/v1/tasks/${taskId}`, { status }).then(r => r.data)
+
+// Fetch all tasks (no status filter)
+export const fetchAllTasks = () =>
+  getClient().get('/api/v1/tasks', { params: { status: 'all' } }).then(r => r.data)
+
 // Bidirectional conversation between two agents
 export const fetchConversation = (a, b, limit = 100) =>
   getClient().get('/api/v1/conversations', { params: { a, b, limit } }).then(r => r.data)
