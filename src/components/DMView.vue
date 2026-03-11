@@ -133,7 +133,25 @@ watch(() => store.selectedAgentId, (id) => { if (id) agentAId.value = id })
 
 const selectedPartnerId = ref(null)
 const convoEl = ref(null)
+// DM draft: persist per conversation pair
+function draftKey(a, b) {
+  if (!a || !b) return null
+  return `pincer_dm_draft_${[a, b].sort().join('_')}`
+}
+
 const dmInput = ref('')
+
+// Restore draft when conversation changes
+watch([() => agentAId.value, () => selectedPartnerId.value], ([a, b]) => {
+  const key = draftKey(a, b)
+  dmInput.value = key ? (localStorage.getItem(key) || '') : ''
+})
+
+// Save draft as user types
+watch(dmInput, (val) => {
+  const key = draftKey(agentAId.value, selectedPartnerId.value)
+  if (key) localStorage.setItem(key, val)
+})
 const dmSending = ref(false)
 const loadingHistory = ref(false)
 const localMsgs = ref([])
@@ -229,6 +247,8 @@ async function sendDmMsg() {
       created_at: new Date().toISOString(),
     }]
     dmInput.value = ''
+    const key = draftKey(agentAId.value, selectedPartnerId.value)
+    if (key) localStorage.removeItem(key)
   } catch (e) {
     console.error('DM failed:', e)
   } finally {
