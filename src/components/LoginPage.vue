@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-gray-100 flex items-center justify-center px-4">
-    <div class="bg-white rounded-2xl shadow-lg w-full max-w-md p-8">
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center px-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg w-full max-w-md p-8">
       <!-- Logo + Title -->
       <div class="flex flex-col items-center mb-8">
         <span class="text-4xl mb-3">🦀</span>
-        <h1 class="text-2xl font-bold text-gray-800">Pincer Monitor</h1>
-        <p class="text-sm text-gray-500 mt-1">
-          {{ step === 'connect' ? '连接到你的 Pincer Hub' : '选择监控的 Room' }}
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ $t('app.title') }}</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          {{ step === 'connect' ? $t('login.connect_subtitle') : $t('login.select_room_subtitle') }}
         </p>
       </div>
 
@@ -14,34 +14,34 @@
       <form v-if="step === 'connect'" @submit.prevent="handleConnect" class="space-y-5">
         <!-- Pincer URL -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Pincer Hub URL
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {{ $t('login.hub_url') }}
           </label>
           <input
             v-model="form.url"
             type="url"
             placeholder="http://10.0.1.10:8080"
             required
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
           />
         </div>
 
         <!-- API Key -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            API Key
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {{ $t('login.api_key') }}
           </label>
           <input
             v-model="form.apiKey"
             type="password"
             placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
             required
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
           />
         </div>
 
         <!-- Error -->
-        <p v-if="error" class="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">
+        <p v-if="error" class="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
           ⚠ {{ error }}
         </p>
 
@@ -50,14 +50,14 @@
           :disabled="loading"
           class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition text-sm"
         >
-          {{ loading ? '连接中…' : '连接' }}
+          {{ loading ? $t('login.connecting') : $t('login.connect') }}
         </button>
       </form>
 
       <!-- Step 2: Select Room -->
       <div v-else-if="step === 'room'" class="space-y-4">
-        <div v-if="rooms.length === 0" class="text-center text-gray-500 text-sm py-4">
-          没有找到任何 Room
+        <div v-if="rooms.length === 0" class="text-center text-gray-500 dark:text-gray-400 text-sm py-4">
+          {{ $t('login.no_rooms') }}
         </div>
 
         <div v-else class="space-y-2">
@@ -65,24 +65,24 @@
             v-for="room in rooms"
             :key="room.id"
             @click="handleSelectRoom(room.id)"
-            class="w-full text-left border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 rounded-lg px-4 py-3 transition group"
+            class="w-full text-left border border-gray-200 dark:border-gray-600 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg px-4 py-3 transition group"
           >
-            <div class="font-medium text-gray-800 group-hover:text-indigo-700">{{ room.name }}</div>
+            <div class="font-medium text-gray-800 dark:text-gray-200 group-hover:text-indigo-700 dark:group-hover:text-indigo-400">{{ room.name }}</div>
             <div class="text-xs text-gray-400 font-mono mt-0.5 truncate">{{ room.id }}</div>
           </button>
         </div>
 
         <button
           @click="step = 'connect'; error = ''"
-          class="w-full text-sm text-gray-400 hover:text-gray-600 py-1 transition"
+          class="w-full text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 py-1 transition"
         >
-          ← 返回重新连接
+          {{ $t('login.back') }}
         </button>
       </div>
 
       <!-- Footer -->
       <p class="text-xs text-center text-gray-400 mt-6">
-        配置保存在浏览器 localStorage，不会上传
+        {{ $t('login.disclaimer') }}
       </p>
     </div>
   </div>
@@ -90,9 +90,11 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { saveConnection, saveRoomId, saveHumanAgentId, getHumanAgentId, getPincerBase, getApiKey, BUILD_TIME_BASE } from '../config'
 import { fetchAgents, fetchRooms, registerHuman } from '../api'
 
+const { t } = useI18n()
 const emit = defineEmits(['logged-in'])
 
 // Pre-fill URL: existing localStorage value or VITE_PINCER_BASE
@@ -129,7 +131,7 @@ async function handleConnect() {
 
     step.value = 'room'
   } catch (e) {
-    error.value = `连接失败：${e.message}。请检查 URL 和 API Key 是否正确。`
+    error.value = t('login.connect_error', { msg: e.message })
   } finally {
     loading.value = false
   }

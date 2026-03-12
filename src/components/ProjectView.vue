@@ -1,29 +1,29 @@
 <template>
   <div class="flex h-full">
     <!-- Left: project list -->
-    <div class="w-52 flex-shrink-0 border-r border-gray-200 bg-white overflow-y-auto flex flex-col">
-      <div class="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
-        项目
+    <div class="w-52 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-y-auto flex flex-col">
+      <div class="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100 dark:border-gray-700">
+        {{ $t('projects.section_title') }}
       </div>
 
       <!-- 未分类 -->
       <button
         @click="selectedProject = null"
         :class="[
-          'flex items-center justify-between px-4 py-3 text-sm text-left transition hover:bg-gray-50',
+          'flex items-center justify-between px-4 py-3 text-sm text-left transition hover:bg-gray-50 dark:hover:bg-gray-700',
           selectedProject === null
-            ? 'bg-indigo-50 text-indigo-700 font-medium border-r-2 border-indigo-500'
-            : 'text-gray-700',
+            ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-medium border-r-2 border-indigo-500'
+            : 'text-gray-700 dark:text-gray-300',
         ]"
       >
-        <span class="flex items-center gap-2"><span>📂</span> 未分类</span>
-        <span class="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+        <span class="flex items-center gap-2"><span>📂</span> {{ $t('projects.unclassified') }}</span>
+        <span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-full">
           {{ unclassifiedTasks.length }}
         </span>
       </button>
 
       <!-- Loading -->
-      <div v-if="loading" class="px-4 py-3 text-xs text-gray-400">加载中…</div>
+      <div v-if="loading" class="px-4 py-3 text-xs text-gray-400">{{ $t('projects.loading') }}</div>
 
       <!-- Project list -->
       <button
@@ -31,10 +31,10 @@
         :key="project.id"
         @click="selectProject(project)"
         :class="[
-          'flex items-center justify-between px-4 py-3 text-sm text-left transition hover:bg-gray-50',
+          'flex items-center justify-between px-4 py-3 text-sm text-left transition hover:bg-gray-50 dark:hover:bg-gray-700',
           selectedProject?.id === project.id
-            ? 'bg-indigo-50 text-indigo-700 font-medium border-r-2 border-indigo-500'
-            : 'text-gray-700',
+            ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-medium border-r-2 border-indigo-500'
+            : 'text-gray-700 dark:text-gray-300',
         ]"
       >
         <span class="flex items-center gap-2 min-w-0">
@@ -43,7 +43,7 @@
         </span>
         <span
           v-if="projectTaskCounts[project.id] !== undefined"
-          class="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1"
+          class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1"
         >
           {{ projectTaskCounts[project.id] }}
         </span>
@@ -53,14 +53,14 @@
     <!-- Right: project info + task list -->
     <div class="flex-1 overflow-y-auto p-5">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="font-semibold text-gray-800">
-          {{ selectedProject ? selectedProject.name : '未分类任务' }}
+        <h3 class="font-semibold text-gray-800 dark:text-gray-200">
+          {{ selectedProject ? selectedProject.name : $t('projects.unclassified_tasks') }}
         </h3>
-        <span class="text-xs text-gray-400">{{ visibleTasks.length }} 个任务</span>
+        <span class="text-xs text-gray-400">{{ $t('projects.task_count', { n: visibleTasks.length }) }}</span>
       </div>
 
       <!-- Tab bar (only when a project is selected) -->
-      <div v-if="selectedProject" class="flex gap-1 mb-4 border-b border-gray-100 pb-0">
+      <div v-if="selectedProject" class="flex gap-1 mb-4 border-b border-gray-100 dark:border-gray-700 pb-0">
         <button
           v-for="tab in ['tasks', 'reports']"
           :key="tab"
@@ -68,15 +68,15 @@
           :class="[
             'px-3 py-1.5 text-xs font-medium rounded-t transition',
             activeTab === tab
-              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-b-2 border-indigo-500'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           ]"
-        >{{ tab === 'tasks' ? '📋 任务' : '📊 日报' }}</button>
+        >{{ tab === 'tasks' ? $t('projects.tab_tasks') : $t('projects.tab_reports') }}</button>
       </div>
 
       <!-- Project meta: repo + overview -->
-      <div v-if="selectedProject" class="mb-4 bg-gray-50 rounded-xl border border-gray-100 p-4 space-y-2 text-sm">
-        <div v-if="selectedProject.description" class="text-gray-600">{{ selectedProject.description }}</div>
+      <div v-if="selectedProject" class="mb-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600 p-4 space-y-2 text-sm">
+        <div v-if="selectedProject.description" class="text-gray-600 dark:text-gray-400">{{ selectedProject.description }}</div>
         <div v-if="selectedProject.repo" class="flex items-center gap-1.5">
           <span class="text-xs text-gray-400 font-semibold uppercase tracking-wide">Repo</span>
           <a :href="selectedProject.repo" target="_blank" class="text-xs text-indigo-500 hover:underline truncate">
@@ -85,16 +85,16 @@
         </div>
         <div v-if="selectedProject.overview">
           <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Overview</p>
-          <p class="text-xs text-gray-600 whitespace-pre-wrap bg-white rounded-lg px-3 py-2 border border-gray-100">{{ selectedProject.overview }}</p>
+          <p class="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-100 dark:border-gray-600">{{ selectedProject.overview }}</p>
         </div>
       </div>
 
       <!-- Loading tasks -->
-      <div v-if="loadingTasks && activeTab === 'tasks'" class="text-sm text-gray-400">加载中…</div>
+      <div v-if="loadingTasks && activeTab === 'tasks'" class="text-sm text-gray-400">{{ $t('projects.loading_tasks') }}</div>
 
       <!-- No tasks -->
       <div v-else-if="activeTab === 'tasks' && visibleTasks.length === 0" class="text-sm text-gray-400 italic py-8 text-center">
-        该分类暂无任务
+        {{ $t('projects.no_tasks') }}
       </div>
 
       <!-- Task rows -->
@@ -102,12 +102,12 @@
         <div
           v-for="task in visibleTasks"
           :key="task.id"
-          class="bg-white rounded-xl border border-gray-100 px-4 py-3 flex items-start gap-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-600 px-4 py-3 flex items-start gap-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
           @click="detailTask = task"
         >
           <span :class="statusDot(task.status)" class="mt-1.5 w-2 h-2 rounded-full flex-shrink-0"></span>
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium text-gray-800 truncate">{{ task.title || task.description }}</div>
+            <div class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{{ task.title || task.description }}</div>
             <div class="flex items-center gap-2 mt-1.5 flex-wrap">
               <span :class="statusBadge(task.status)" class="text-xs px-1.5 py-0.5 rounded font-medium">
                 {{ task.status }}
@@ -122,22 +122,22 @@
 
       <!-- Reports tab -->
       <div v-if="selectedProject && activeTab === 'reports'">
-        <div v-if="loadingReports" class="text-sm text-gray-400 py-4">加载日报中…</div>
+        <div v-if="loadingReports" class="text-sm text-gray-400 py-4">{{ $t('projects.loading_reports') }}</div>
         <div v-else-if="reports.length === 0" class="text-sm text-gray-400 italic py-8 text-center">
-          暂无日报（每天 23:30 生成一次）
+          {{ $t('projects.no_reports') }}
         </div>
         <div v-else class="space-y-3">
           <div
             v-for="report in reports"
             :key="report.date"
-            class="bg-white rounded-xl border border-gray-100 px-4 py-3 shadow-sm hover:shadow-md hover:border-indigo-100 cursor-pointer transition-all"
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-600 px-4 py-3 shadow-sm hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-700 cursor-pointer transition-all"
             @click="selectedReport = report"
           >
             <div class="flex items-center justify-between mb-1.5">
-              <div class="text-xs font-semibold text-indigo-600">📅 {{ report.date }}</div>
-              <span class="text-xs text-gray-400">点击查看详情 →</span>
+              <div class="text-xs font-semibold text-indigo-600 dark:text-indigo-400">📅 {{ report.date }}</div>
+              <span class="text-xs text-gray-400">{{ $t('projects.click_detail') }}</span>
             </div>
-            <p class="text-xs text-gray-600 leading-relaxed line-clamp-3">{{ summaryPreview(report) }}</p>
+            <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">{{ summaryPreview(report) }}</p>
           </div>
         </div>
       </div>
@@ -151,13 +151,13 @@
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4"
       @click.self="selectedReport = null"
     >
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[85vh] flex flex-col">
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[85vh] flex flex-col">
         <div class="flex items-center justify-between mb-4 flex-shrink-0">
-          <h3 class="text-base font-bold text-gray-800">📅 {{ selectedReport.date }} 日报</h3>
-          <button @click="selectedReport = null" class="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+          <h3 class="text-base font-bold text-gray-800 dark:text-gray-100">📅 {{ selectedReport.date }} {{ $t('projects.report_suffix') }}</h3>
+          <button @click="selectedReport = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg leading-none">✕</button>
         </div>
         <div
-          class="markdown-body overflow-y-auto flex-1 text-gray-700 text-sm leading-relaxed"
+          class="markdown-body overflow-y-auto flex-1 text-gray-700 dark:text-gray-300 text-sm leading-relaxed"
           v-html="renderMarkdown(selectedReport)"
         ></div>
       </div>
@@ -171,32 +171,32 @@
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4"
       @click.self="detailTask = null"
     >
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto">
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto">
         <div class="flex items-start justify-between mb-4">
-          <h3 class="text-base font-bold text-gray-800 pr-4">{{ detailTask.title }}</h3>
-          <button @click="detailTask = null" class="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+          <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 pr-4">{{ detailTask.title }}</h3>
+          <button @click="detailTask = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg leading-none">✕</button>
         </div>
         <div class="space-y-3 text-sm">
           <div v-if="detailTask.description">
-            <p class="text-xs font-semibold text-gray-400 uppercase mb-1">描述</p>
-            <p class="text-gray-700 whitespace-pre-wrap">{{ detailTask.description }}</p>
+            <p class="text-xs font-semibold text-gray-400 uppercase mb-1">{{ $t('projects.description') }}</p>
+            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ detailTask.description }}</p>
           </div>
           <div v-if="detailTask.guidance">
-            <p class="text-xs font-semibold text-gray-400 uppercase mb-1">执行指导</p>
-            <p class="text-gray-700 whitespace-pre-wrap bg-gray-50 rounded-lg p-3 text-xs font-mono">{{ detailTask.guidance }}</p>
+            <p class="text-xs font-semibold text-gray-400 uppercase mb-1">{{ $t('projects.guidance') }}</p>
+            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-xs font-mono">{{ detailTask.guidance }}</p>
           </div>
           <div v-if="detailTask.acceptance_criteria">
-            <p class="text-xs font-semibold text-gray-400 uppercase mb-1">验收标准</p>
-            <p class="text-gray-700 whitespace-pre-wrap">{{ detailTask.acceptance_criteria }}</p>
+            <p class="text-xs font-semibold text-gray-400 uppercase mb-1">{{ $t('projects.acceptance_criteria') }}</p>
+            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ detailTask.acceptance_criteria }}</p>
           </div>
           <div v-if="detailTask.result">
-            <p class="text-xs font-semibold text-gray-400 uppercase mb-1">结果</p>
-            <p class="text-gray-700 whitespace-pre-wrap bg-green-50 rounded-lg p-3 text-xs">{{ detailTask.result }}</p>
+            <p class="text-xs font-semibold text-gray-400 uppercase mb-1">{{ $t('projects.result') }}</p>
+            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-xs">{{ detailTask.result }}</p>
           </div>
-          <div class="flex gap-4 text-xs text-gray-400 pt-2 border-t flex-wrap">
-            <span>状态：<span class="font-medium text-gray-600">{{ detailTask.status }}</span></span>
-            <span v-if="detailTask.assigned_agent_id">指派：{{ agentName(detailTask.assigned_agent_id) }}</span>
-            <span>更新：{{ new Date(detailTask.updated_at).toLocaleString('zh-CN') }}</span>
+          <div class="flex gap-4 text-xs text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600 flex-wrap">
+            <span>{{ $t('projects.status_label') }}<span class="font-medium text-gray-600 dark:text-gray-300">{{ detailTask.status }}</span></span>
+            <span v-if="detailTask.assigned_agent_id">{{ $t('projects.assigned_label') }}{{ agentName(detailTask.assigned_agent_id) }}</span>
+            <span>{{ $t('projects.updated_label') }}{{ new Date(detailTask.updated_at).toLocaleString('zh-CN') }}</span>
           </div>
         </div>
       </div>
@@ -206,11 +206,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { usePincerStore } from '../stores/pincer'
 import { fetchProjects, fetchProjectTasks, fetchProjectReports } from '../api'
 
+useI18n()
 const store = usePincerStore()
 
 const projects = ref([])
@@ -334,6 +336,11 @@ async function loadReports() {
   margin-bottom: 0.5em;
   color: #1f2937;
 }
+.dark .markdown-body :deep(h1),
+.dark .markdown-body :deep(h2),
+.dark .markdown-body :deep(h3) {
+  color: #f3f4f6;
+}
 .markdown-body :deep(h1) { font-size: 1.1rem; }
 .markdown-body :deep(h2) { font-size: 1rem; }
 .markdown-body :deep(h3) { font-size: 0.9rem; }
@@ -354,12 +361,18 @@ async function loadReports() {
   font-size: 0.8em;
   font-family: monospace;
 }
+.dark .markdown-body :deep(code) {
+  background: #374151;
+}
 .markdown-body :deep(pre) {
   background: #f3f4f6;
   padding: 0.75em 1em;
   border-radius: 8px;
   overflow-x: auto;
   margin-bottom: 0.75em;
+}
+.dark .markdown-body :deep(pre) {
+  background: #1f2937;
 }
 .markdown-body :deep(pre code) {
   background: none;
@@ -376,5 +389,9 @@ async function loadReports() {
   border-top: 1px solid #e5e7eb;
   margin: 1em 0;
 }
+.dark .markdown-body :deep(hr) {
+  border-top-color: #374151;
+}
 .markdown-body :deep(strong) { font-weight: 600; color: #111827; }
+.dark .markdown-body :deep(strong) { color: #f9fafb; }
 </style>

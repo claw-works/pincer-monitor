@@ -3,36 +3,53 @@
   <LoginPage v-if="!configured" @logged-in="onLoggedIn" />
 
   <!-- Main dashboard -->
-  <div v-else class="h-screen flex flex-col bg-gray-100 text-gray-900">
+  <div v-else class="h-screen flex flex-col bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     <!-- Header -->
-    <header class="bg-white shadow-sm px-6 py-3 flex items-center justify-between flex-shrink-0">
+    <header class="bg-white dark:bg-gray-800 shadow-sm px-6 py-3 flex items-center justify-between flex-shrink-0">
       <div class="flex items-center gap-2">
         <span class="text-xl">🦀</span>
-        <h1 class="text-lg font-bold tracking-tight">Pincer Monitor</h1>
+        <h1 class="text-lg font-bold tracking-tight">{{ $t('app.title') }}</h1>
         <!-- Current agent indicator -->
         <span
           v-if="store.selectedAgent"
-          class="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full ml-1"
+          class="text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full ml-1"
         >
-          视角: {{ store.selectedAgent.name || store.selectedAgent.id?.slice(0, 8) }}
+          {{ $t('app.perspective') }} {{ store.selectedAgent.name || store.selectedAgent.id?.slice(0, 8) }}
         </span>
       </div>
       <div class="flex items-center gap-3">
         <!-- WS connection indicator -->
         <span
-          :title="store.wsConnected ? 'WebSocket 已连接' : 'WebSocket 断开，使用轮询备用'"
+          :title="store.wsConnected ? $t('app.ws_connected') : $t('app.ws_disconnected')"
           class="text-xs flex items-center gap-1"
-          :class="store.wsConnected ? 'text-green-500' : 'text-gray-300'"
+          :class="store.wsConnected ? 'text-green-500' : 'text-gray-300 dark:text-gray-500'"
         >
-          <span class="w-1.5 h-1.5 rounded-full inline-block" :class="store.wsConnected ? 'bg-green-400' : 'bg-gray-300'"></span>
-          {{ store.wsConnected ? 'Live' : 'Polling' }}
+          <span class="w-1.5 h-1.5 rounded-full inline-block" :class="store.wsConnected ? 'bg-green-400' : 'bg-gray-300 dark:bg-gray-500'"></span>
+          {{ store.wsConnected ? $t('app.live') : $t('app.polling') }}
         </span>
         <span v-if="store.error" class="text-xs text-red-500">⚠ {{ store.error }}</span>
         <button
           @click="store.refresh()"
           class="text-xs bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-lg transition"
         >
-          Refresh
+          {{ $t('app.refresh') }}
+        </button>
+
+        <!-- Theme toggle -->
+        <button
+          @click="toggleTheme()"
+          class="text-xs w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+          :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        >
+          {{ theme === 'dark' ? '☀️' : '🌙' }}
+        </button>
+
+        <!-- Language switcher -->
+        <button
+          @click="switchLocale()"
+          class="text-xs border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-2 py-1 rounded-lg transition font-medium"
+        >
+          {{ locale === 'zh' ? '中' : 'EN' }}
         </button>
 
         <!-- #18: Identity widget -->
@@ -51,15 +68,15 @@
           <button
             v-else
             @click="identityOpen = !identityOpen"
-            class="text-xs border border-indigo-300 text-indigo-600 hover:bg-indigo-50 px-3 py-1 rounded-lg transition"
+            class="text-xs border border-indigo-300 dark:border-indigo-600 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 px-3 py-1 rounded-lg transition"
           >
-            👤 设置身份
+            👤 {{ $t('app.set_identity') }}
           </button>
 
           <!-- Identity dropdown -->
           <div
             v-if="identityOpen"
-            class="absolute right-0 top-10 z-50 w-72 bg-white rounded-xl shadow-lg border border-gray-200 p-4"
+            class="absolute right-0 top-10 z-50 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4"
           >
             <ProfileSetup @close="identityOpen = false" />
           </div>
@@ -68,9 +85,9 @@
         <button
           @click="logout"
           class="text-xs text-gray-400 hover:text-red-500 transition"
-          title="退出登录"
+          :title="$t('app.logout_title')"
         >
-          ⎋ 退出
+          ⎋ {{ $t('app.logout') }}
         </button>
       </div>
     </header>
@@ -79,7 +96,7 @@
     <div class="flex flex-1 min-h-0">
 
       <!-- Sidebar -->
-      <nav class="w-52 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 overflow-hidden">
+      <nav class="w-52 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0 overflow-hidden">
 
         <!-- Nav items (top) -->
         <div class="py-3 flex flex-col gap-0.5">
@@ -90,15 +107,15 @@
             :class="[
               'flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg mx-2 transition text-left',
               active === item.key
-                ? 'bg-indigo-50 text-indigo-700'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
             ]"
           >
             <span class="text-base">{{ item.icon }}</span>
             <span>{{ item.label }}</span>
             <span
               v-if="item.badge !== undefined && item.badge > 0"
-              class="ml-auto text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full"
+              class="ml-auto text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full"
             >
               {{ item.badge }}
             </span>
@@ -106,10 +123,10 @@
         </div>
 
         <!-- Divider + Agents section (bottom, scrollable) -->
-        <div class="border-t border-gray-100 flex flex-col min-h-0 flex-1 overflow-hidden">
+        <div class="border-t border-gray-100 dark:border-gray-700 flex flex-col min-h-0 flex-1 overflow-hidden">
           <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide flex-shrink-0">
-            Agents
-            <span class="normal-case font-normal text-gray-300 ml-1">(点击切换视角)</span>
+            {{ $t('app.agents_section') }}
+            <span class="normal-case font-normal text-gray-300 dark:text-gray-500 ml-1">{{ $t('app.click_to_switch') }}</span>
           </div>
           <div class="overflow-y-auto flex-1 pb-3">
             <button
@@ -117,19 +134,19 @@
               :key="agent.id"
               @click="store.selectAgent(agent.id)"
               :class="[
-                'w-full flex items-center gap-2 px-4 py-2 text-left transition hover:bg-gray-50',
+                'w-full flex items-center gap-2 px-4 py-2 text-left transition hover:bg-gray-50 dark:hover:bg-gray-700',
                 store.selectedAgentId === agent.id
-                  ? 'bg-indigo-50'
+                  ? 'bg-indigo-50 dark:bg-indigo-900/30'
                   : '',
               ]"
             >
               <!-- Status dot -->
               <span
                 class="w-2 h-2 rounded-full flex-shrink-0"
-                :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300'"
+                :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300 dark:bg-gray-500'"
               ></span>
               <div class="min-w-0 flex-1">
-                <div class="text-xs font-medium text-gray-700 truncate flex items-center gap-1">
+                <div class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate flex items-center gap-1">
                   <span>{{ agent.name || agent.id.slice(0, 8) }}</span>
                   <span v-if="agent.type === 'human'" class="text-blue-300 text-xs">👤</span>
                 </div>
@@ -144,9 +161,9 @@
             <button
               v-if="store.selectedAgentId"
               @click="store.selectAgent(store.selectedAgentId)"
-              class="w-full text-xs text-gray-400 hover:text-gray-600 px-4 py-1.5 text-center transition"
+              class="w-full text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 px-4 py-1.5 text-center transition"
             >
-              取消视角选择
+              {{ $t('app.cancel_perspective') }}
             </button>
           </div>
         </div>
@@ -158,16 +175,16 @@
 
         <!-- Agents -->
         <section v-if="active === 'agents'" class="flex-1 overflow-y-auto p-6">
-          <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-            Agents ({{ store.agents.length }})
+          <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
+            {{ $t('app.agents_section') }} ({{ store.agents.length }})
           </h2>
           <AgentCards />
         </section>
 
         <!-- Room Messages — fills height -->
         <section v-else-if="active === 'room'" class="flex-1 min-h-0 flex flex-col p-6">
-          <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 flex-shrink-0">
-            Room Messages
+          <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 flex-shrink-0">
+            {{ $t('app.room_messages') }}
           </h2>
           <div class="flex-1 min-h-0">
             <MessageFeed class="h-full" @need-profile="active = 'profile'" />
@@ -186,16 +203,16 @@
 
         <!-- Profile -->
         <section v-else-if="active === 'profile'" class="flex-1 overflow-y-auto p-6">
-          <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-            身份设置
+          <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
+            {{ $t('app.profile_settings') }}
           </h2>
           <ProfileSetup />
         </section>
 
         <!-- DMs — fills height -->
         <section v-else-if="active === 'dm'" class="flex-1 min-h-0 flex flex-col p-6">
-          <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 flex-shrink-0">
-            Private Messages
+          <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 flex-shrink-0">
+            {{ $t('app.private_messages') }}
           </h2>
           <div class="flex-1 min-h-0">
             <DMView class="h-full" />
@@ -209,8 +226,10 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePincerStore } from './stores/pincer'
 import { isConfigured, clearConfig } from './config'
+import { useTheme } from './composables/useTheme'
 import AgentCards from './components/AgentCards.vue'
 import MessageFeed from './components/MessageFeed.vue'
 import TaskBoard from './components/TaskBoard.vue'
@@ -219,6 +238,9 @@ import DMView from './components/DMView.vue'
 import ProfileSetup from './components/ProfileSetup.vue'
 import LoginPage from './components/LoginPage.vue'
 
+const { t, locale } = useI18n()
+const { theme, toggleTheme } = useTheme()
+
 const store = usePincerStore()
 const configured = ref(isConfigured())
 const active = ref(localStorage.getItem('pincer_active_tab') || 'room')
@@ -226,10 +248,10 @@ const active = ref(localStorage.getItem('pincer_active_tab') || 'room')
 watch(active, (val) => localStorage.setItem('pincer_active_tab', val))
 
 const navItems = computed(() => [
-  { key: 'room',     icon: '💬', label: 'Room',     badge: store.messages.length },
-  { key: 'dm',       icon: '📩', label: 'DMs' },
-  { key: 'tasks',    icon: '📋', label: 'Tasks',    badge: filteredTaskCount.value },
-  { key: 'projects', icon: '📁', label: 'Projects' },
+  { key: 'room',     icon: '💬', label: t('nav.room'),     badge: store.messages.length },
+  { key: 'dm',       icon: '📩', label: t('nav.dm') },
+  { key: 'tasks',    icon: '📋', label: t('nav.tasks'),    badge: filteredTaskCount.value },
+  { key: 'projects', icon: '📁', label: t('nav.projects') },
 ])
 
 // AI agents only (exclude humans) — for sidebar perspective switcher
@@ -261,6 +283,11 @@ const humanDisplayName = computed(() => {
 const humanInitial = computed(() =>
   humanDisplayName.value.charAt(0).toUpperCase() || '?'
 )
+
+function switchLocale() {
+  locale.value = locale.value === 'zh' ? 'en' : 'zh'
+  localStorage.setItem('pincer_locale', locale.value)
+}
 
 function onLoggedIn() {
   configured.value = true

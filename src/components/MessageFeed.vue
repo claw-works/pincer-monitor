@@ -1,7 +1,7 @@
 <template>
-  <div class="bg-white rounded-xl shadow p-4 flex flex-col h-full">
-    <div class="font-semibold text-gray-700 mb-3 flex items-center justify-between gap-2">
-      <span>消息流</span>
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex flex-col h-full">
+    <div class="font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center justify-between gap-2">
+      <span>{{ $t('feed.title') }}</span>
       <!-- Search toggle -->
       <button @click="searchOpen = !searchOpen; searchOpen || clearSearch()" class="text-xs text-gray-400 hover:text-indigo-500 transition">🔍</button>
     </div>
@@ -12,17 +12,17 @@
         v-model="searchQ"
         @keydown.enter="doSearch"
         @keydown.escape="clearSearch(); searchOpen = false"
-        placeholder="搜索消息…"
-        class="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+        :placeholder="$t('feed.search_placeholder')"
+        class="flex-1 text-xs border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400"
       />
-      <button @click="doSearch" class="text-xs px-2 py-1.5 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600">搜索</button>
-      <button @click="clearSearch(); searchOpen = false" class="text-xs px-2 text-gray-400 hover:text-gray-600">✕</button>
+      <button @click="doSearch" class="text-xs px-2 py-1.5 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600">{{ $t('feed.search') }}</button>
+      <button @click="clearSearch(); searchOpen = false" class="text-xs px-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">✕</button>
     </div>
 
     <!-- Search results -->
     <div v-if="searchResults !== null" class="flex-1 overflow-y-auto space-y-2 pr-1">
-      <div v-if="searchLoading" class="text-center text-gray-400 py-8 text-sm">搜索中…</div>
-      <div v-else-if="!searchResults.length" class="text-center text-gray-400 py-8 text-sm">无结果</div>
+      <div v-if="searchLoading" class="text-center text-gray-400 py-8 text-sm">{{ $t('feed.searching') }}</div>
+      <div v-else-if="!searchResults.length" class="text-center text-gray-400 py-8 text-sm">{{ $t('feed.no_results') }}</div>
       <template v-else>
         <div
           v-for="msg in searchResults"
@@ -34,21 +34,21 @@
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-baseline gap-1.5 mb-0.5">
-              <span class="text-xs font-semibold text-gray-700">{{ agentName(msg.sender_agent_id) }}</span>
+              <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ agentName(msg.sender_agent_id) }}</span>
               <span class="text-[10px] text-gray-400">{{ formatTime(msg.created_at) }}</span>
             </div>
-            <p class="text-xs text-gray-800 whitespace-pre-wrap break-words bg-gray-50 rounded-lg px-2 py-1.5">{{ msg.content }}</p>
+            <p class="text-xs text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1.5">{{ msg.content }}</p>
           </div>
         </div>
         <div v-if="searchHasMore" class="text-center pt-2">
-          <button @click="loadMoreSearch" class="text-xs text-indigo-500 hover:text-indigo-700 px-3 py-1 border border-indigo-200 rounded-full">加载更多（共 {{ searchTotal }} 条）</button>
+          <button @click="loadMoreSearch" class="text-xs text-indigo-500 hover:text-indigo-700 px-3 py-1 border border-indigo-200 dark:border-indigo-700 rounded-full">{{ $t('feed.load_more', { total: searchTotal }) }}</button>
         </div>
       </template>
     </div>
 
     <!-- Normal message list -->
     <div v-else class="flex-1 overflow-y-auto space-y-2 pr-1" ref="scrollEl">
-      <div v-if="!sorted.length" class="text-center text-gray-400 py-8 text-sm">No messages</div>
+      <div v-if="!sorted.length" class="text-center text-gray-400 py-8 text-sm">{{ $t('feed.no_messages') }}</div>
 
       <div
         v-for="msg in sorted"
@@ -68,7 +68,7 @@
         <div :class="['max-w-[72%] flex flex-col', isMine(msg) ? 'items-end' : 'items-start']">
           <!-- Sender name + time (others only) -->
           <div v-if="!isMine(msg)" class="flex items-center gap-1.5 mb-1">
-            <span class="text-xs font-semibold text-indigo-600">{{ agentName(msg.sender_agent_id) }}</span>
+            <span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{{ agentName(msg.sender_agent_id) }}</span>
             <span class="text-xs text-gray-400">{{ formatTime(msg.created_at) }}</span>
           </div>
           <!-- Time only for mine -->
@@ -81,8 +81,8 @@
               isMine(msg)
                 ? 'bg-indigo-600 text-white rounded-br-sm prose-invert'
                 : isSystem(msg)
-                  ? 'bg-gray-100 text-gray-500 italic rounded-bl-sm'
-                  : 'bg-gray-100 text-gray-800 rounded-bl-sm',
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 italic rounded-bl-sm'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-sm',
             ]"
             v-html="renderMd(msg.content)"
           />
@@ -94,18 +94,18 @@
       <!-- AI perspective: read-only notice -->
       <div
         v-if="isAiPerspective"
-        class="text-xs text-amber-600 bg-amber-50 rounded-xl px-3 py-2 text-center"
+        class="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-xl px-3 py-2 text-center"
       >
-        🐾 {{ store.selectedAgent?.name || store.selectedAgent?.id?.slice(0,8) }} 视角（只读）
+        🐾 {{ $t('feed.perspective_readonly', { name: store.selectedAgent?.name || store.selectedAgent?.id?.slice(0,8) }) }}
       </div>
 
       <!-- No identity: prompt setup -->
       <div v-else-if="!currentRoomSender" class="mt-0">
         <button
           @click="$emit('need-profile')"
-          class="w-full text-xs text-indigo-500 hover:text-indigo-700 border border-dashed border-indigo-200 hover:border-indigo-400 rounded-xl py-2 transition"
+          class="w-full text-xs text-indigo-500 hover:text-indigo-700 border border-dashed border-indigo-200 dark:border-indigo-700 hover:border-indigo-400 rounded-xl py-2 transition"
         >
-          请先设置身份才能发消息 →
+          {{ $t('feed.need_profile') }}
         </button>
       </div>
 
@@ -114,18 +114,18 @@
       <!-- @mention dropdown -->
       <div
         v-if="mentionList.length"
-        class="absolute bottom-full mb-1 left-0 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden"
+        class="absolute bottom-full mb-1 left-0 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg z-20 overflow-hidden"
       >
         <button
           v-for="agent in mentionList"
           :key="agent.id"
           @mousedown.prevent="insertMention(agent)"
-          class="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-50 text-left text-sm"
+          class="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-left text-sm"
         >
           <span v-if="agent.id === '__all__'" class="text-xs">📢</span>
           <span v-else-if="agent.type === 'human'" class="text-blue-400 text-xs">👤</span>
           <span v-else class="text-gray-300 text-xs">🐾</span>
-          <span class="text-gray-800 font-medium">{{ agent._label || agent.name || agent.id.slice(0, 8) }}</span>
+          <span class="text-gray-800 dark:text-gray-200 font-medium">{{ agent._label || agent.name || agent.id.slice(0, 8) }}</span>
         </button>
       </div>
       <div class="flex gap-2 items-end">
@@ -136,15 +136,15 @@
           @keydown.escape="mentionList = []"
           @keydown.tab.prevent="mentionList.length && insertMention(mentionList[0])"
           rows="2"
-          placeholder="发消息到 Room… (@提及)"
-          class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition resize-none"
+          :placeholder="$t('feed.input_placeholder')"
+          class="flex-1 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition resize-none"
         ></textarea>
         <button
           @click="sendMessage"
           :disabled="!inputText.trim() || sending"
           class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 rounded-xl text-sm transition flex-shrink-0 self-stretch"
         >
-          {{ sending ? '…' : '发送' }}
+          {{ sending ? $t('feed.sending') : $t('feed.send') }}
         </button>
       </div>
       </div>  <!-- end human-sender block -->
@@ -154,6 +154,7 @@
 
 <script setup>
 import { computed, ref, watch, nextTick, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js'
@@ -161,6 +162,8 @@ import 'highlight.js/styles/github.css'
 import { usePincerStore } from '../stores/pincer'
 import { sendRoomMessage, searchRoomMessages } from '../api'
 import { getRoomId } from '../config'
+
+const { t } = useI18n()
 
 // Configure marked with syntax highlighting
 marked.setOptions({
@@ -242,7 +245,7 @@ function isSystem(msg) {
 }
 
 function agentName(id) {
-  if (!id) return 'System'
+  if (!id) return t('feed.system')
   return agentNameMap.value[id] || id.slice(0, 8)
 }
 
@@ -282,7 +285,9 @@ const mentionList = ref([])
 watch(inputText, (val) => localStorage.setItem(DRAFT_KEY, val))
 
 // @mention detection
-const ALL_MENTION = { id: '__all__', name: 'all', _label: '@all（@所有人）' }
+const allMentionEntry = computed(() => ({
+  id: '__all__', name: 'all', _label: t('feed.all_mention_label')
+}))
 
 function onInput(e) {
   const val = inputText.value
@@ -296,7 +301,7 @@ function onInput(e) {
     .filter(a => (a.name || a.id).toLowerCase().includes(query))
     .slice(0, 5)
   const allMatch = 'all'.includes(query) || '所有人'.includes(query)
-  mentionList.value = allMatch ? [ALL_MENTION, ...agentMatches] : agentMatches
+  mentionList.value = allMatch ? [allMentionEntry.value, ...agentMatches] : agentMatches
 }
 
 function insertMention(agent) {
