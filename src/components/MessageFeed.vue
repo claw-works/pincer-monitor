@@ -45,7 +45,6 @@
         </div>
       </template>
     </div>
-    </div>
 
     <!-- Normal message list -->
     <div v-else class="flex-1 overflow-y-auto space-y-2 pr-1" ref="scrollEl">

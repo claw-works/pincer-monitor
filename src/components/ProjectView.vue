@@ -130,15 +130,39 @@
           <div
             v-for="report in reports"
             :key="report.date"
-            class="bg-white rounded-xl border border-gray-100 px-4 py-3 shadow-sm"
+            class="bg-white rounded-xl border border-gray-100 px-4 py-3 shadow-sm hover:shadow-md hover:border-indigo-100 cursor-pointer transition-all"
+            @click="selectedReport = report"
           >
-            <div class="text-xs font-semibold text-indigo-600 mb-2">📅 {{ report.date }}</div>
-            <p class="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">{{ report.content }}</p>
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="text-xs font-semibold text-indigo-600">📅 {{ report.date }}</div>
+              <span class="text-xs text-gray-400">点击查看详情 →</span>
+            </div>
+            <p class="text-xs text-gray-600 leading-relaxed line-clamp-3">{{ summaryPreview(report) }}</p>
           </div>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Report Detail Modal -->
+  <Teleport to="body">
+    <div
+      v-if="selectedReport"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4"
+      @click.self="selectedReport = null"
+    >
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[85vh] flex flex-col">
+        <div class="flex items-center justify-between mb-4 flex-shrink-0">
+          <h3 class="text-base font-bold text-gray-800">📅 {{ selectedReport.date }} 日报</h3>
+          <button @click="selectedReport = null" class="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+        </div>
+        <div
+          class="markdown-body overflow-y-auto flex-1 text-gray-700 text-sm leading-relaxed"
+          v-html="renderMarkdown(selectedReport)"
+        ></div>
+      </div>
+    </div>
+  </Teleport>
 
   <!-- Task Detail Modal -->
   <Teleport to="body">
@@ -182,6 +206,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { usePincerStore } from '../stores/pincer'
 import { fetchProjects, fetchProjectTasks, fetchProjectReports } from '../api'
 
@@ -197,6 +223,7 @@ const detailTask = ref(null)
 const activeTab = ref('tasks')
 const reports = ref([])
 const loadingReports = ref(false)
+const selectedReport = ref(null)
 
 // Tasks with no project_id from the global store
 const unclassifiedTasks = computed(() =>
@@ -269,6 +296,20 @@ function statusBadge(status) {
   }
 }
 
+function summaryPreview(report) {
+  const text = report.summary || report.content || ''
+  // strip markdown syntax for preview, take first ~3 non-empty lines
+  const plain = text.replace(/[#*`_>~\[\]]/g, '').trim()
+  const lines = plain.split('\n').filter(l => l.trim()).slice(0, 3)
+  return lines.join(' · ')
+}
+
+function renderMarkdown(report) {
+  const text = report.summary || report.content || ''
+  const html = marked.parse(text)
+  return DOMPurify.sanitize(html)
+}
+
 async function loadReports() {
   if (!selectedProject.value) return
   loadingReports.value = true
@@ -282,3 +323,58 @@ async function loadReports() {
   }
 }
 </script>
+
+<style scoped>
+/* Markdown content styles inside report modal */
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3) {
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  color: #1f2937;
+}
+.markdown-body :deep(h1) { font-size: 1.1rem; }
+.markdown-body :deep(h2) { font-size: 1rem; }
+.markdown-body :deep(h3) { font-size: 0.9rem; }
+.markdown-body :deep(p) {
+  margin-bottom: 0.75em;
+  line-height: 1.6;
+}
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+.markdown-body :deep(li) { margin-bottom: 0.25em; }
+.markdown-body :deep(code) {
+  background: #f3f4f6;
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  font-size: 0.8em;
+  font-family: monospace;
+}
+.markdown-body :deep(pre) {
+  background: #f3f4f6;
+  padding: 0.75em 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 0.75em;
+}
+.markdown-body :deep(pre code) {
+  background: none;
+  padding: 0;
+}
+.markdown-body :deep(blockquote) {
+  border-left: 3px solid #6366f1;
+  padding-left: 0.75em;
+  color: #6b7280;
+  margin: 0.5em 0;
+}
+.markdown-body :deep(hr) {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1em 0;
+}
+.markdown-body :deep(strong) { font-weight: 600; color: #111827; }
+</style>
