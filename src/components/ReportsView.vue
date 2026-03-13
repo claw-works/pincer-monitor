@@ -67,19 +67,19 @@
           <div v-else-if="!reports.length" class="flex-1 flex items-center justify-center text-sm text-gray-400">
             {{ $t('reports.no_reports') }}
           </div>
-          <div v-else class="flex-1 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-700/50">
-            <button
-              v-for="r in reports"
-              :key="r.id"
-              @click="openReport(r)"
-              class="w-full text-left px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition"
-              :class="selectedReport?.id === r.id ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''"
-            >
-              <div class="flex items-center justify-between gap-2">
-                <span class="text-sm text-gray-700 dark:text-gray-200 truncate font-medium">{{ r.title || $t('reports.untitled') }}</span>
-                <span class="text-xs text-gray-400 flex-shrink-0">{{ formatDate(r.created_at) }}</span>
-              </div>
-            </button>
+          <div v-else class="flex-1 overflow-y-auto p-3">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+              <button
+                v-for="r in reports"
+                :key="r.id"
+                @click="openReport(r)"
+                class="text-left p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40 hover:border-indigo-200 dark:hover:border-indigo-700 transition"
+                :class="selectedReport?.id === r.id ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300 dark:border-indigo-600' : 'bg-white dark:bg-gray-800'"
+              >
+                <div class="text-sm text-gray-700 dark:text-gray-200 font-medium line-clamp-2 mb-1">{{ r.title || $t('reports.untitled') }}</div>
+                <div class="text-xs text-gray-400">{{ formatDate(r.created_at) }}</div>
+              </button>
+            </div>
           </div>
           <!-- Pagination -->
           <div v-if="totalReports > pageSize" class="px-4 py-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
