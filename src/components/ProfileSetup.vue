@@ -138,7 +138,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePincerStore } from '../stores/pincer'
-import { registerHuman, resetApiKey, registerHumanIdentity } from '../api'
+import { registerHuman, resetApiKey } from '../api'
 import { saveHumanAgentId, saveConnection, getPincerBase, saveIsHuman } from '../config'
 
 const { t } = useI18n()
@@ -188,11 +188,11 @@ async function registerHumanId() {
   registeringHuman.value = true
   registerHumanError.value = ''
   try {
-    const data = await registerHumanIdentity(humanName.value.trim())
-    // Save human_agent_id returned by /auth/register-human
-    if (data?.human_agent_id) {
-      saveHumanAgentId(data.human_agent_id)
-      store.humanAgentId = data.human_agent_id
+    // POST /agents/register with type=human → v0.8.7 does upsert-by-name
+    const data = await registerHuman(humanName.value.trim())
+    if (data?.id) {
+      saveHumanAgentId(data.id)
+      store.humanAgentId = data.id
     }
     saveIsHuman(true)
     store.isHuman = true
