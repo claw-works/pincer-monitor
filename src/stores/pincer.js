@@ -286,6 +286,12 @@ export const usePincerStore = defineStore('pincer', () => {
   let fallbackTimer = null
 
   function startPolling() {
+    // Guard: stop existing timers/WS before restarting to prevent stacking
+    if (fallbackTimer) {
+      clearInterval(fallbackTimer)
+      fallbackTimer = null
+    }
+
     // Initial full data load via HTTP
     refresh()
 
