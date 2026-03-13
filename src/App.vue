@@ -245,7 +245,11 @@ const store = usePincerStore()
 const configured = ref(isConfigured())
 const active = ref(localStorage.getItem('pincer_active_tab') || 'room')
 
-watch(active, (val) => localStorage.setItem('pincer_active_tab', val))
+watch(active, (val) => {
+  localStorage.setItem('pincer_active_tab', val)
+  // Refresh agents on tab switch to keep perspective name fresh
+  store.refreshAgents()
+})
 
 const navItems = computed(() => [
   { key: 'room',     icon: '💬', label: t('nav.room'),     badge: store.messages.length },

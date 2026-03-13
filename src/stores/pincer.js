@@ -27,6 +27,8 @@ export const usePincerStore = defineStore('pincer', () => {
   function selectAgent(id) {
     selectedAgentId.value = selectedAgentId.value === id ? '' : id
     localStorage.setItem('pincer_selected_agent', selectedAgentId.value)
+    // Refresh agents to ensure name is up-to-date in the perspective badge
+    if (selectedAgentId.value) refreshAgents()
   }
 
   // Active DM target (clicked from AgentCards)
