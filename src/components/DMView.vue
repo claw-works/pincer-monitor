@@ -297,38 +297,42 @@ async function sendDmMsg() {
   }
 }
 
-// Auto-refresh conversation
-// - Human sender: listen to store.lastInboxEvent (set by inbox WS) → reload on new DM
-// - Agent sender: poll every 30s
-let pollTimer = null
+// Real-time DM updates via monitor WS (no HTTP polling needed)
+// - Human sender: inbox WS → store.lastInboxEvent → reload conversation
+// - Agent-agent: monitor WS → store.lastDmEvent → append message incrementally
 
-function startAutoRefresh() {
-  stopAutoRefresh()
-  if (!agentAId.value || !selectedPartnerId.value) return
-  if (!isHumanSender.value) {
-    // agent-agent view: slow poll
-    pollTimer = setInterval(() => {
-      loadConversation(agentAId.value, selectedPartnerId.value)
-    }, 30000)
-  }
+function appendDmMessage(msg) {
+  // Append a single DM to the local conversation without full reload
+  const fromId = msg.from_agent_id || msg.from || 'unknown'
+  const toId = msg.to_agent_id || msg.to || ''
+  const a = agentAId.value
+  const b = selectedPartnerId.value
+  if (!a || !b) return
+  const involves = (fromId === a || fromId === b) && (toId === a || toId === b)
+  if (!involves) return
+  // Deduplicate
+  const key = fromId === a ? b : a
+  const existing = store.dms[key] || []
+  if (existing.find(m => m.id === msg.id)) return
+  store.mergeDMs(key, [msg])
 }
 
-function stopAutoRefresh() {
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
-}
-
-// When human sender: react to inbox WS events
+// Human sender: react to inbox WS events → full reload to get server-ordered messages
 watch(() => store.lastInboxEvent, (evt) => {
   if (!evt || !isHumanSender.value || !selectedPartnerId.value) return
   const relevant = evt.from_agent_id === selectedPartnerId.value || evt.to_agent_id === selectedPartnerId.value
   if (relevant) loadConversation(agentAId.value, selectedPartnerId.value)
 })
 
-// Restart poll timer when conversation changes
-watch([agentAId, selectedPartnerId, isHumanSender], () => startAutoRefresh())
+// Agent-agent: react to monitor WS agent.message events → append incrementally
+watch(() => store.lastDmEvent, (evt) => {
+  if (!evt || isHumanSender.value) return
+  appendDmMessage(evt)
+})
 
-onMounted(() => startAutoRefresh())
-onUnmounted(() => stopAutoRefresh())
+onUnmounted(() => {/* cleanup handled by store WS */})
+
+
 
 // DM Search
 const dmSearchOpen = ref(false)

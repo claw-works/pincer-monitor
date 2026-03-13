@@ -257,6 +257,28 @@ export const usePincerStore = defineStore('pincer', () => {
         break
       }
 
+      case 'agent.message': {
+        // DM received via monitor WS — normalise and append to dms
+        if (!data) break
+        const fromId = data.from || data.from_agent_id || data.sender_agent_id || 'unknown'
+        const toId = data.to || data.to_agent_id || ''
+        const normalised = {
+          id: data.id,
+          from_agent_id: fromId,
+          to_agent_id: toId,
+          payload: data.payload,
+          created_at: data.timestamp || data.created_at || new Date().toISOString(),
+        }
+        // Deduplicate and append
+        const key = fromId
+        const existing = dms.value[key] || []
+        if (!existing.find(m => m.id === normalised.id)) {
+          accumulateDMs([normalised])
+        }
+        lastDmEvent.value = normalised
+        break
+      }
+
       default:
         // Unknown event type — ignore silently
         break
@@ -264,8 +286,6 @@ export const usePincerStore = defineStore('pincer', () => {
   }
 
   // ── WebSocket lifecycle ───────────────────────────────────────────────────
-
-  // Room WebSocket — real-time room messages
   const { connected: wsStatus, connect: wsConnect, disconnect: wsDisconnect } = useWebSocket(
     handleWsEvent,
     {
@@ -278,6 +298,8 @@ export const usePincerStore = defineStore('pincer', () => {
 
   // Inbox WebSocket — real-time DMs for the human user
   const lastInboxEvent = ref(null)
+  // Monitor WS agent.message — real-time DMs for agent-agent view
+  const lastDmEvent = ref(null)
 
   function handleInboxWsMessage(msg) {
     const fromId = msg.from || msg.from_agent_id || msg.sender_agent_id || 'unknown'
@@ -351,6 +373,7 @@ export const usePincerStore = defineStore('pincer', () => {
     activeDmAgentId, openDM,
     dms, addOutgoingDM, mergeDMs,
     lastInboxEvent,
+    lastDmEvent,
     refresh, refreshAgents, refreshTasks, refreshMessages, refreshDMs, refreshRoomId,
     startPolling, stopPolling,
     // Allow components to connect inbox WS after humanAgentId is set
