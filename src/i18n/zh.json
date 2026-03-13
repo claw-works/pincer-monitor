@@ -21,7 +21,8 @@
     "room": "Room",
     "dm": "DMs",
     "tasks": "Tasks",
-    "projects": "Projects"
+    "projects": "Projects",
+    "reports": "报告"
   },
   "login": {
     "connect_subtitle": "连接到你的 Pincer Hub",
@@ -144,5 +145,16 @@
     "registering": "注册中…",
     "confirm_login": "确认登录",
     "register_error": "注册失败：{msg}"
+  },
+  "reports": {
+    "jobs": "报告任务",
+    "loading": "加载中…",
+    "no_jobs": "暂无报告任务",
+    "no_reports": "暂无报告",
+    "select_job": "← 选择左边的报告任务",
+    "count": "条",
+    "untitled": "无标题",
+    "prev": "上一页",
+    "next": "下一页"
   }
 }

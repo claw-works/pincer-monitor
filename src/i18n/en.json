@@ -21,7 +21,8 @@
     "room": "Room",
     "dm": "DMs",
     "tasks": "Tasks",
-    "projects": "Projects"
+    "projects": "Projects",
+    "reports": "Reports"
   },
   "login": {
     "connect_subtitle": "Connect to your Pincer Hub",
@@ -144,5 +145,16 @@
     "registering": "Registering…",
     "confirm_login": "Confirm Login",
     "register_error": "Registration failed: {msg}"
+  },
+  "reports": {
+    "jobs": "Report Jobs",
+    "loading": "Loading…",
+    "no_jobs": "No report jobs",
+    "no_reports": "No reports",
+    "select_job": "← Select a report job",
+    "count": "reports",
+    "untitled": "Untitled",
+    "prev": "Prev",
+    "next": "Next"
   }
 }

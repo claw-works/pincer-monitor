@@ -201,6 +201,11 @@
           <ProjectView class="flex-1 min-h-0" />
         </section>
 
+        <!-- Reports -->
+        <section v-else-if="active === 'reports'" class="flex-1 min-h-0 flex flex-col">
+          <ReportsView class="flex-1 min-h-0" />
+        </section>
+
         <!-- Profile -->
         <section v-else-if="active === 'profile'" class="flex-1 overflow-y-auto p-6">
           <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
@@ -235,6 +240,7 @@ import MessageFeed from './components/MessageFeed.vue'
 import TaskBoard from './components/TaskBoard.vue'
 import ProjectView from './components/ProjectView.vue'
 import DMView from './components/DMView.vue'
+import ReportsView from './components/ReportsView.vue'
 import ProfileSetup from './components/ProfileSetup.vue'
 import LoginPage from './components/LoginPage.vue'
 
@@ -256,6 +262,7 @@ const navItems = computed(() => [
   { key: 'dm',       icon: '📩', label: t('nav.dm') },
   { key: 'tasks',    icon: '📋', label: t('nav.tasks'),    badge: filteredTaskCount.value },
   { key: 'projects', icon: '📁', label: t('nav.projects') },
+  { key: 'reports',  icon: '📊', label: t('nav.reports') },
 ])
 
 // AI agents only (exclude humans) — for sidebar perspective switcher
