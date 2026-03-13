@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { fetchAgents, fetchTasks, fetchMessages, fetchInbox } from '../api'
-import { getRoomId, getHumanAgentId, getIsHuman, POLL_INTERVAL } from '../config'
+import { fetchAgents, fetchTasks, fetchMessages, fetchInbox, fetchRooms } from '../api'
+import { getRoomId, getHumanAgentId, getIsHuman, saveRoomId, POLL_INTERVAL } from '../config'
 import { useWebSocket } from '../composables/useWebSocket'
 import { useInboxWS } from '../composables/useInboxWS'
 
@@ -62,6 +62,26 @@ export const usePincerStore = defineStore('pincer', () => {
     } catch (e) {
       error.value = e.message
     }
+  }
+
+  // Refresh the room_id from the backend (handles opaque UUID format migration).
+  // Call on startup and whenever a room request returns 404.
+  async function refreshRoomId() {
+    try {
+      const rooms = await fetchRooms()
+      const list = Array.isArray(rooms) ? rooms : (rooms.rooms || [])
+      if (list.length > 0) {
+        const newId = list[0].id
+        if (newId && newId !== getRoomId()) {
+          saveRoomId(newId)
+          console.log('[Store] room_id updated:', newId)
+        }
+        return newId
+      }
+    } catch (e) {
+      console.warn('[Store] refreshRoomId failed:', e)
+    }
+    return getRoomId()
   }
 
   async function refreshMessages({ since } = {}) {
@@ -295,10 +315,12 @@ export const usePincerStore = defineStore('pincer', () => {
     }
 
     // Initial full data load via HTTP
-    refresh()
-
-    // Start Room WebSocket for real-time message updates
-    wsConnect()
+    // Refresh room_id first (handles opaque UUID migration from user:xxx:default)
+    refreshRoomId().then(() => {
+      refresh()
+      // Start Room WebSocket after room_id is confirmed
+      wsConnect()
+    })
 
     // Start Inbox WebSocket for real-time DMs (only if humanAgentId is set)
     if (getHumanAgentId()) {
@@ -329,7 +351,7 @@ export const usePincerStore = defineStore('pincer', () => {
     activeDmAgentId, openDM,
     dms, addOutgoingDM, mergeDMs,
     lastInboxEvent,
-    refresh, refreshAgents, refreshTasks, refreshMessages, refreshDMs,
+    refresh, refreshAgents, refreshTasks, refreshMessages, refreshDMs, refreshRoomId,
     startPolling, stopPolling,
     // Allow components to connect inbox WS after humanAgentId is set
     connectInboxWS: inboxWsConnect,

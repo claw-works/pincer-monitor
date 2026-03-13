@@ -337,7 +337,7 @@ const visibleTasks = computed(() => {
 function tasksByStatus(status) {
   return visibleTasks.value
     .filter(t => t.status === status)
-    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+  // Backend (v0.8.10) already returns tasks sorted by updated_at DESC
 }
 
 function agentName(id) {
