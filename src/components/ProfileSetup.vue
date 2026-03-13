@@ -189,10 +189,10 @@ async function registerHumanId() {
   registerHumanError.value = ''
   try {
     const data = await registerHumanIdentity(humanName.value.trim())
-    // Save humanAgentId if returned, mark as human
-    if (data?.id) {
-      saveHumanAgentId(data.id)
-      store.humanAgentId = data.id
+    // Save human_agent_id returned by /auth/register-human
+    if (data?.human_agent_id) {
+      saveHumanAgentId(data.human_agent_id)
+      store.humanAgentId = data.human_agent_id
     }
     saveIsHuman(true)
     store.isHuman = true
