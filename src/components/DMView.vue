@@ -167,10 +167,10 @@ import { fetchConversation, sendDM, searchDMMessages } from '../api'
 const { t } = useI18n()
 const store = usePincerStore()
 
-// Agent A: independent selector (default to humanAgentId or selectedAgentId)
-const agentAId = ref(store.humanAgentId || store.selectedAgentId || '')
+// Agent A: respects global perspective (selectedAgentId) first, falls back to humanAgentId
+const agentAId = ref(store.selectedAgentId || store.humanAgentId || '')
 watch(() => store.humanAgentId, (id) => { if (!agentAId.value && id) agentAId.value = id })
-watch(() => store.selectedAgentId, (id) => { if (id) agentAId.value = id })
+watch(() => store.selectedAgentId, (id) => { agentAId.value = id || store.humanAgentId || '' })
 
 const selectedPartnerId = ref(null)
 const convoEl = ref(null)

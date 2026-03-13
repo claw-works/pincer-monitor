@@ -228,7 +228,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePincerStore } from './stores/pincer'
-import { isConfigured, clearConfig } from './config'
+import { isConfigured, clearConfig, getHumanName } from './config'
 import { useTheme } from './composables/useTheme'
 import AgentCards from './components/AgentCards.vue'
 import MessageFeed from './components/MessageFeed.vue'
@@ -280,8 +280,7 @@ const filteredTaskCount = computed(() => {
 const identityOpen = ref(false)
 
 const humanDisplayName = computed(() => {
-  const agent = store.agents.find(a => a.id === store.humanAgentId)
-  return agent?.name || store.humanAgentId?.slice(0, 8) || ''
+  return getHumanName() || store.agents.find(a => a.id === store.humanAgentId)?.name || store.humanAgentId?.slice(0, 8) || ''
 })
 
 const humanInitial = computed(() =>
