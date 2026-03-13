@@ -32,6 +32,43 @@
         </button>
       </div>
       <p v-if="resetError" class="text-xs text-red-500">⚠ {{ resetError }}</p>
+
+      <!-- Human identity registration (observer mode → human) -->
+      <div class="pt-3 border-t border-gray-100 dark:border-gray-700 space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">人类身份</span>
+          <span
+            v-if="store.isHuman"
+            class="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full"
+          >已注册</span>
+          <span
+            v-else
+            class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-400 px-2 py-0.5 rounded-full"
+          >观察者</span>
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500">
+          注册人类身份后可对任务进行审批（通过 / 打回）。
+        </p>
+        <div v-if="!store.isHuman" class="flex gap-2">
+          <input
+            v-model="humanName"
+            type="text"
+            placeholder="你的名字"
+            class="flex-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          />
+          <button
+            @click="registerHumanId"
+            :disabled="registeringHuman || !humanName.trim()"
+            class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition"
+          >{{ registeringHuman ? '注册中…' : '注册' }}</button>
+        </div>
+        <p v-if="registerHumanError" class="text-xs text-red-500">⚠ {{ registerHumanError }}</p>
+        <button
+          v-if="store.isHuman"
+          @click="revokeHuman"
+          class="text-xs text-gray-400 hover:text-gray-600 transition"
+        >撤销人类身份</button>
+      </div>
     </div>
 
     <!-- Not registered -->
@@ -101,8 +138,8 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePincerStore } from '../stores/pincer'
-import { registerHuman, resetApiKey } from '../api'
-import { saveHumanAgentId, saveConnection, getPincerBase } from '../config'
+import { registerHuman, resetApiKey, registerHumanIdentity } from '../api'
+import { saveHumanAgentId, saveConnection, getPincerBase, saveIsHuman } from '../config'
 
 const { t } = useI18n()
 const store = usePincerStore()
@@ -137,6 +174,39 @@ async function register() {
 function logout() {
   saveHumanAgentId('')
   store.humanAgentId = ''
+  saveIsHuman(false)
+  store.isHuman = false
+}
+
+// ── Human Identity Registration ───────────────────────────────
+const humanName = ref('')
+const registeringHuman = ref(false)
+const registerHumanError = ref('')
+
+async function registerHumanId() {
+  if (!humanName.value.trim()) return
+  registeringHuman.value = true
+  registerHumanError.value = ''
+  try {
+    const data = await registerHumanIdentity(humanName.value.trim())
+    // Save humanAgentId if returned, mark as human
+    if (data?.id) {
+      saveHumanAgentId(data.id)
+      store.humanAgentId = data.id
+    }
+    saveIsHuman(true)
+    store.isHuman = true
+    humanName.value = ''
+  } catch (e) {
+    registerHumanError.value = e.message || '注册失败'
+  } finally {
+    registeringHuman.value = false
+  }
+}
+
+function revokeHuman() {
+  saveIsHuman(false)
+  store.isHuman = false
 }
 
 // ── Reset API Key ─────────────────────────────────────────────

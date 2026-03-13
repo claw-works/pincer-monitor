@@ -128,8 +128,8 @@
             </span>
             <span>{{ $t('tasks.updated_label') }}{{ formatTime(detailTask.updated_at) }}</span>
           </div>
-          <!-- Review actions: only shown for human accounts when task is in review -->
-          <div v-if="detailTask.status === 'review' && store.humanAgentId" class="pt-3 border-t">
+          <!-- Review actions: only shown for verified human accounts when task is in review -->
+          <div v-if="detailTask.status === 'review' && store.isHuman" class="pt-3 border-t">
             <div v-if="reviewAction === ''" class="flex gap-2">
               <button
                 @click="openApprove(detailTask)"

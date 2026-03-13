@@ -36,11 +36,20 @@ export function saveRoomId(roomId) {
   localStorage.setItem('pincer_room_id', roomId)
 }
 
+export function getIsHuman() {
+  return localStorage.getItem('pincer_is_human') === 'true'
+}
+
+export function saveIsHuman(val) {
+  localStorage.setItem('pincer_is_human', val ? 'true' : 'false')
+}
+
 export function clearConfig() {
   localStorage.removeItem('pincer_url')
   localStorage.removeItem('pincer_api_key')
   localStorage.removeItem('pincer_room_id')
   localStorage.removeItem('pincer_human_agent_id')
+  localStorage.removeItem('pincer_is_human')
 }
 
 export const POLL_INTERVAL = 5000 // ms

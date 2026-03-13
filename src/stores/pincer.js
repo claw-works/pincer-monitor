@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { fetchAgents, fetchTasks, fetchMessages, fetchInbox } from '../api'
-import { getRoomId, getHumanAgentId, POLL_INTERVAL } from '../config'
+import { getRoomId, getHumanAgentId, getIsHuman, POLL_INTERVAL } from '../config'
 import { useWebSocket } from '../composables/useWebSocket'
 import { useInboxWS } from '../composables/useInboxWS'
 
@@ -16,6 +16,7 @@ export const usePincerStore = defineStore('pincer', () => {
 
   // Human agent identity
   const humanAgentId = ref(getHumanAgentId())
+  const isHuman = ref(getIsHuman())
 
   // Selected agent for current view perspective
   const selectedAgentId = ref(localStorage.getItem('pincer_selected_agent') || '')
@@ -315,6 +316,7 @@ export const usePincerStore = defineStore('pincer', () => {
     agents, tasks, messages, loading, error,
     wsConnected: wsStatus,
     humanAgentId,
+    isHuman,
     selectedAgentId, selectedAgent, selectAgent,
     activeDmAgentId, openDM,
     dms, addOutgoingDM, mergeDMs,
