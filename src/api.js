@@ -61,6 +61,8 @@ export const updateTaskStatus = (taskId, newStatus, agentId, extra = {}) => {
     return client.patch(`/api/v1/tasks/${taskId}/claim`, { agent_id: agentId }).then(r => r.data)
   } else if (newStatus === 'running') {
     return client.patch(`/api/v1/tasks/${taskId}/start`).then(r => r.data)
+  } else if (newStatus === 'review') {
+    return client.patch(`/api/v1/tasks/${taskId}/submit`).then(r => r.data)
   } else if (newStatus === 'done') {
     return client.patch(`/api/v1/tasks/${taskId}/complete`, { result: extra.result || '' }).then(r => r.data)
   } else if (newStatus === 'failed') {
@@ -72,6 +74,14 @@ export const updateTaskStatus = (taskId, newStatus, agentId, extra = {}) => {
 // Fetch all tasks (no status filter)
 export const fetchAllTasks = ({ limit = 50, offset = 0 } = {}) =>
   getClient().get('/api/v1/tasks', { params: { limit, offset } }).then(r => r.data)
+
+// Review workflow
+export const submitTask = (taskId) =>
+  getClient().patch(`/api/v1/tasks/${taskId}/submit`).then(r => r.data)
+export const approveTask = (taskId) =>
+  getClient().patch(`/api/v1/tasks/${taskId}/approve`).then(r => r.data)
+export const rejectTask = (taskId, reason) =>
+  getClient().patch(`/api/v1/tasks/${taskId}/reject`, { reason }).then(r => r.data)
 
 // Search messages
 export const searchRoomMessages = (roomId, q, { limit = 20, offset = 0 } = {}) =>

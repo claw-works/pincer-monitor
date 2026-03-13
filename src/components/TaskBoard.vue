@@ -93,12 +93,12 @@
     <div
       v-if="detailTask"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4"
-      @click.self="detailTask = null"
+      @click.self="detailTask = null; reviewAction = ''"
     >
       <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto">
         <div class="flex items-start justify-between mb-4">
           <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 pr-4">{{ detailTask.title }}</h3>
-          <button @click="detailTask = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg leading-none">✕</button>
+          <button @click="detailTask = null; reviewAction = ''" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg leading-none">✕</button>
         </div>
         <div class="space-y-3 text-sm text-gray-700 dark:text-gray-300">
           <div v-if="detailTask.description">
@@ -117,12 +117,54 @@
             <p class="text-xs font-semibold text-gray-400 uppercase mb-1">{{ $t('tasks.result') }}</p>
             <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-xs">{{ detailTask.result }}</p>
           </div>
+          <div v-if="detailTask.review_note" class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3">
+            <p class="text-xs font-semibold text-orange-500 uppercase mb-1">打回原因</p>
+            <p class="text-orange-700 dark:text-orange-300 whitespace-pre-wrap text-xs">{{ detailTask.review_note }}</p>
+          </div>
           <div class="flex gap-4 text-xs text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600">
             <span>{{ $t('tasks.status_label') }}<span class="font-medium" :class="statusTextClass(detailTask.status)">{{ detailTask.status }}</span></span>
             <span v-if="detailTask.assigned_agent_id">
               {{ $t('tasks.assigned_label') }}{{ agentName(detailTask.assigned_agent_id) || detailTask.assigned_agent_id?.slice(0,8) }}
             </span>
             <span>{{ $t('tasks.updated_label') }}{{ formatTime(detailTask.updated_at) }}</span>
+          </div>
+          <!-- Review actions: only shown for human accounts when task is in review -->
+          <div v-if="detailTask.status === 'review' && store.humanAgentId" class="pt-3 border-t">
+            <div v-if="reviewAction === ''" class="flex gap-2">
+              <button
+                @click="openApprove(detailTask)"
+                class="flex-1 bg-green-500 hover:bg-green-600 text-white text-sm py-2 rounded-lg transition font-medium"
+              >✓ 通过</button>
+              <button
+                @click="openReject(detailTask)"
+                class="flex-1 bg-red-400 hover:bg-red-500 text-white text-sm py-2 rounded-lg transition font-medium"
+              >✕ 打回</button>
+            </div>
+            <div v-else class="space-y-2">
+              <p v-if="reviewAction === 'approve'" class="text-sm text-gray-700">确认通过此任务？</p>
+              <div v-if="reviewAction === 'reject'">
+                <label class="block text-xs font-medium text-gray-600 mb-1">打回原因 *</label>
+                <textarea
+                  v-model="rejectReason"
+                  rows="2"
+                  placeholder="请填写打回原因…"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+                />
+              </div>
+              <p v-if="reviewError" class="text-xs text-red-500">{{ reviewError }}</p>
+              <div class="flex gap-2">
+                <button
+                  @click="cancelReview"
+                  class="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm py-1.5 rounded-lg transition"
+                >取消</button>
+                <button
+                  @click="confirmReview"
+                  :disabled="reviewLoading"
+                  :class="reviewAction === 'approve' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-400 hover:bg-red-500'"
+                  class="flex-1 text-white text-sm py-1.5 rounded-lg transition disabled:opacity-50"
+                >{{ reviewLoading ? '处理中…' : (reviewAction === 'approve' ? '确认通过' : '确认打回') }}</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -220,7 +262,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePincerStore } from '../stores/pincer'
-import { createTask, updateTaskStatus, fetchAllTasks, fetchProjects } from '../api'
+import { createTask, updateTaskStatus, fetchAllTasks, fetchProjects, approveTask, rejectTask } from '../api'
 import { usePolling } from '../composables/usePolling'
 
 const { t } = useI18n()
@@ -280,6 +322,7 @@ const columns = computed(() => [
   { status: 'pending',  label: 'Pending',  labelClass: 'text-yellow-600' },
   { status: 'assigned', label: 'Assigned', labelClass: 'text-blue-600'   },
   { status: 'running',  label: 'Running',  labelClass: 'text-purple-600' },
+  { status: 'review',   label: 'Review',   labelClass: 'text-orange-500' },
   { status: 'done',     label: 'Done',     labelClass: 'text-green-600'  },
   { status: 'failed',   label: 'Failed',   labelClass: 'text-red-500'    },
 ])
@@ -345,7 +388,11 @@ async function onDrop(e, newStatus) {
 
 // ── Detail modal ─────────────────────────────────────────────
 const detailTask = ref(null)
-function openDetail(task) { detailTask.value = task }
+function openDetail(task) {
+  detailTask.value = task
+  reviewAction.value = ''
+  reviewError.value = ''
+}
 
 // ── New task modal ────────────────────────────────────────────
 const showModal = ref(false)
@@ -386,6 +433,55 @@ async function submitTask() {
   }
 }
 
+// ── Review actions ────────────────────────────────────────────
+const reviewAction = ref('')  // 'approve' | 'reject'
+const rejectReason = ref('')
+const reviewLoading = ref(false)
+const reviewError = ref('')
+
+function openApprove(task) {
+  detailTask.value = task
+  reviewAction.value = 'approve'
+  rejectReason.value = ''
+  reviewError.value = ''
+}
+
+function openReject(task) {
+  detailTask.value = task
+  reviewAction.value = 'reject'
+  rejectReason.value = ''
+  reviewError.value = ''
+}
+
+function cancelReview() {
+  reviewAction.value = ''
+  reviewError.value = ''
+}
+
+async function confirmReview() {
+  if (!detailTask.value) return
+  if (reviewAction.value === 'reject' && !rejectReason.value.trim()) {
+    reviewError.value = '请填写打回原因'
+    return
+  }
+  reviewLoading.value = true
+  reviewError.value = ''
+  try {
+    if (reviewAction.value === 'approve') {
+      await approveTask(detailTask.value.id)
+    } else {
+      await rejectTask(detailTask.value.id, rejectReason.value.trim())
+    }
+    reviewAction.value = ''
+    detailTask.value = null
+    await refreshAllTasks()
+  } catch (e) {
+    reviewError.value = e.message || '操作失败'
+  } finally {
+    reviewLoading.value = false
+  }
+}
+
 // ── Helpers ───────────────────────────────────────────────────
 function formatTime(ts) {
   if (!ts) return '—'
@@ -397,6 +493,7 @@ function statusTextClass(status) {
     pending:  'text-yellow-600',
     assigned: 'text-blue-600',
     running:  'text-purple-600',
+    review:   'text-orange-500',
     done:     'text-green-600',
     failed:   'text-red-500',
   }
