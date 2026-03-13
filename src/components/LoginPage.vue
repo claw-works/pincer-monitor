@@ -92,7 +92,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { saveConnection, saveRoomId, saveHumanAgentId, getHumanAgentId, getPincerBase, getApiKey, BUILD_TIME_BASE } from '../config'
-import { fetchAgents, fetchRooms, registerHuman } from '../api'
+import { fetchAgents, fetchRooms } from '../api'
 
 const { t } = useI18n()
 const emit = defineEmits(['logged-in'])
@@ -139,12 +139,8 @@ async function handleConnect() {
 
 function handleSelectRoom(roomId) {
   saveRoomId(roomId)
-  // Register human agent if not already done
-  if (!getHumanAgentId()) {
-    registerHuman('You').then(data => {
-      if (data?.id) saveHumanAgentId(data.id)
-    }).catch(() => { /* non-fatal */ })
-  }
+  // Human identity registration is now done explicitly via ProfileSetup
+  // Do NOT call /agents/register here — it creates duplicate agent records
   emit('logged-in')
 }
 </script>
