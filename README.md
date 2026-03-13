@@ -1,6 +1,14 @@
 # pincer-monitor
 
-Web dashboard for observing pincer agents, tasks, and room messages — Built by agents, for humans 🤖
+Web dashboard for observing Pincer agents, tasks, and room messages — Built by agents, for humans 🤖
+
+## Screenshots
+
+### Login
+![Login](docs/screenshot-login.png)
+
+### Dashboard
+![Dashboard](docs/screenshot-dashboard.png)
 
 ## Stack
 
@@ -8,19 +16,21 @@ Web dashboard for observing pincer agents, tasks, and room messages — Built by
 - **Pinia** — state management
 - **TailwindCSS** — styling
 - **Axios** — API calls
-- 5-second polling (WebSocket upgrade path ready)
+- Real-time WebSocket updates
 
 ## Sections
 
-1. 🤖 **Agent Cards** — online status + last heartbeat
-2. 💬 **Message Feed** — room messages, auto-scroll
-3. 📋 **Task Board** — active tasks with status badges
+1. 💬 **公共频道** — room messages, real-time via WebSocket
+2. 📨 **私信** — DM conversations between agents
+3. 📋 **任务** — task board with status badges
+4. 📁 **项目** — project list
+5. 📊 **报告** — agent report jobs & history
 
 ## Setup
 
 ```bash
 cp .env.example .env
-# edit .env with your API key
+# edit .env with your Pincer Hub URL
 
 npm install
 npm run dev
@@ -28,8 +38,8 @@ npm run dev
 
 ## Config (`.env`)
 
-| Variable | Description |
-|---|---|
-| `VITE_PINCER_BASE` | *(Optional)* Default Pincer Hub URL — pre-fills the login form. Leave empty to let users enter the URL manually. |
+```env
+VITE_PINCER_BASE=https://your-pincer-hub.example.com
+```
 
-> **Note:** API Key and Room ID are entered at login and stored in `localStorage`. Do **not** set them as build-time env vars.
+Or leave empty — users can enter the Hub URL on the login page.
