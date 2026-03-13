@@ -22,6 +22,7 @@ export function useWebSocket(onEvent, { onReconnect } = {}) {
   let stopped = false
   let hasConnectedBefore = false
   let reconnectDelay = 5000
+  let disconnectedAt = 0  // timestamp (ms) when connection was lost
 
   function getWsUrl() {
     const base = getPincerBase()
@@ -35,7 +36,7 @@ export function useWebSocket(onEvent, { onReconnect } = {}) {
   }
 
   function connect() {
-    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.CLOSING)) return
     stopped = false
 
     try {
@@ -53,8 +54,15 @@ export function useWebSocket(onEvent, { onReconnect } = {}) {
       clearTimeout(reconnectTimer)
 
       if (hasConnectedBefore) {
-        console.log('[RoomWS] Reconnected — triggering catch-up')
-        onReconnect?.()
+        // Only fetch catch-up messages if we were disconnected for >5s
+        // (avoids flooding /rooms/messages on rapid reconnects from server keepalive)
+        const gapMs = Date.now() - disconnectedAt
+        if (gapMs > 5000) {
+          console.log(`[RoomWS] Reconnected after ${gapMs}ms — triggering catch-up`)
+          onReconnect?.()
+        } else {
+          console.log(`[RoomWS] Reconnected after ${gapMs}ms — gap too short, skipping catch-up`)
+        }
       }
       hasConnectedBefore = true
     }
@@ -80,6 +88,7 @@ export function useWebSocket(onEvent, { onReconnect } = {}) {
 
     ws.onclose = (e) => {
       connected.value = false
+      disconnectedAt = Date.now()
       console.log(`[RoomWS] Closed (code=${e.code})`)
       if (!stopped) scheduleReconnect()
     }
