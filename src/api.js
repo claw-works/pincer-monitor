@@ -90,6 +90,10 @@ export const searchRoomMessages = (roomId, q, { limit = 20, offset = 0 } = {}) =
 export const searchDMMessages = (agentA, agentB, q, { limit = 20, offset = 0 } = {}) =>
   getClient().get('/api/v1/messages/search', { params: { q, agent_a: agentA, agent_b: agentB, limit, offset } }).then(r => r.data)
 
+// Reset API Key
+export const resetApiKey = () =>
+  getClient().post('/api/v1/auth/reset-key').then(r => r.data)
+
 // Bidirectional conversation between two agents
 export const fetchConversation = (a, b, limit = 100) =>
   getClient().get('/api/v1/conversations', { params: { a, b, limit } }).then(r => r.data)

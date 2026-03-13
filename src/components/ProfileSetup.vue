@@ -15,12 +15,23 @@
       <p class="text-sm text-gray-500 dark:text-gray-400">
         {{ $t('profile.logged_in_desc') }}
       </p>
-      <button
-        @click="logout"
-        class="text-xs text-red-400 hover:text-red-600 transition"
-      >
-        {{ $t('profile.logout') }}
-      </button>
+      <div class="flex items-center gap-3">
+        <button
+          @click="logout"
+          class="text-xs text-red-400 hover:text-red-600 transition"
+        >
+          {{ $t('profile.logout') }}
+        </button>
+        <span class="text-gray-200 dark:text-gray-600">|</span>
+        <button
+          @click="handleResetKey"
+          :disabled="resetLoading"
+          class="text-xs text-orange-400 hover:text-orange-600 disabled:opacity-50 transition"
+        >
+          {{ resetLoading ? '重置中…' : '🔑 重置 API Key' }}
+        </button>
+      </div>
+      <p v-if="resetError" class="text-xs text-red-500">⚠ {{ resetError }}</p>
     </div>
 
     <!-- Not registered -->
@@ -54,14 +65,44 @@
       </form>
     </div>
   </div>
+
+  <!-- Reset Key Result Modal -->
+  <Teleport to="body">
+    <div
+      v-if="showResetModal"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4"
+      @click.self="showResetModal = false"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+        <div class="flex items-start justify-between">
+          <h3 class="text-base font-bold text-gray-800 dark:text-gray-100">🔑 新 API Key 已生成</h3>
+          <button @click="showResetModal = false" class="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          新 Key 已自动保存到本地。请复制并妥善保管，旧 Key 已失效。
+        </p>
+        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 font-mono text-sm text-gray-800 dark:text-gray-200 break-all select-all">
+          {{ newApiKey }}
+        </div>
+        <button
+          @click="copyNewKey"
+          class="w-full py-2 rounded-lg text-sm font-medium transition"
+          :class="copied ? 'bg-green-500 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'"
+        >
+          {{ copied ? '✓ 已复制' : '复制 Key' }}
+        </button>
+        <p class="text-xs text-center text-gray-400">关闭后可在连接设置中查看当前 Key</p>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePincerStore } from '../stores/pincer'
-import { registerHuman } from '../api'
-import { saveHumanAgentId } from '../config'
+import { registerHuman, resetApiKey } from '../api'
+import { saveHumanAgentId, saveConnection, getPincerBase } from '../config'
 
 const { t } = useI18n()
 const store = usePincerStore()
@@ -96,5 +137,40 @@ async function register() {
 function logout() {
   saveHumanAgentId('')
   store.humanAgentId = ''
+}
+
+// ── Reset API Key ─────────────────────────────────────────────
+const showResetModal = ref(false)
+const newApiKey = ref('')
+const resetLoading = ref(false)
+const resetError = ref('')
+const copied = ref(false)
+
+async function handleResetKey() {
+  resetLoading.value = true
+  resetError.value = ''
+  newApiKey.value = ''
+  copied.value = false
+  try {
+    const data = await resetApiKey()
+    newApiKey.value = data.api_key
+    // Auto-update localStorage
+    saveConnection({ url: getPincerBase(), apiKey: data.api_key })
+    showResetModal.value = true
+  } catch (e) {
+    resetError.value = e.message || '重置失败'
+  } finally {
+    resetLoading.value = false
+  }
+}
+
+async function copyNewKey() {
+  try {
+    await navigator.clipboard.writeText(newApiKey.value)
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 2000)
+  } catch {
+    // fallback: select text
+  }
 }
 </script>
