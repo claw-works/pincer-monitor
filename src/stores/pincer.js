@@ -103,6 +103,7 @@ export const usePincerStore = defineStore('pincer', () => {
           // Merge page into existing messages, dedup by id
           const existingIds = new Set(messages.value.map(x => x.id))
           const newMsgs = page.filter(x => !existingIds.has(x.id))
+          if (newMsgs.length === 0) break  // safety: all dupes → stop (prevents infinite loop)
           if (newMsgs.length > 0) {
             messages.value = [...messages.value, ...newMsgs].sort(
               (a, b) => new Date(a.created_at) - new Date(b.created_at)
