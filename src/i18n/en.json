@@ -89,7 +89,8 @@
     "human_group": "Humans",
     "cancel": "Cancel",
     "creating": "Creating…",
-    "create": "Create"
+    "create": "Create",
+    "all": "All"
   },
   "projects": {
     "section_title": "Projects",

@@ -23,8 +23,58 @@
       </button>
     </div>
 
-    <!-- Kanban columns -->
-    <div class="flex gap-3 overflow-x-auto pb-2 flex-1">
+  <!-- Mobile: status filter tabs -->
+    <div class="flex md:hidden gap-1 mb-3 overflow-x-auto pb-1 flex-shrink-0">
+      <button
+        v-for="col in [{ status: '', label: $t('tasks.all') }, ...columns]"
+        :key="col.status"
+        @click="mobileStatus = col.status"
+        :class="[
+          'flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition',
+          mobileStatus === col.status
+            ? 'bg-indigo-600 text-white'
+            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+        ]"
+      >
+        {{ col.label }}
+        <span class="ml-1 opacity-70">{{ col.status ? tasksByStatus(col.status).length : store.tasks.length }}</span>
+      </button>
+    </div>
+
+    <!-- Mobile: flat list view -->
+    <div class="flex md:hidden flex-col gap-2 overflow-y-auto flex-1">
+      <div v-if="mobileTasks.length === 0" class="text-center text-gray-400 text-sm py-8">
+        {{ $t('tasks.empty_column') }}
+      </div>
+      <div
+        v-for="task in mobileTasks"
+        :key="task.id"
+        class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3 shadow-sm active:shadow-md transition cursor-pointer"
+        @click="openDetail(task)"
+      >
+        <div class="flex items-start justify-between gap-2 mb-2">
+          <p class="text-sm font-medium text-gray-800 dark:text-gray-200 leading-snug flex-1">{{ task.title || task.description }}</p>
+          <span :class="statusBadgeClass(task.status)" class="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0">{{ task.status }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="font-mono text-[10px] text-gray-300 dark:text-gray-500">{{ task.id?.slice(0, 8) }}</span>
+          <div class="flex items-center gap-2">
+            <span v-if="agentName(task.assigned_agent_id)" class="text-[10px] text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 px-1.5 rounded-full">
+              {{ agentName(task.assigned_agent_id) }}
+            </span>
+            <!-- Quick approve button for review tasks -->
+            <button
+              v-if="task.status === 'review' && store.isHuman"
+              @click.stop="openDetail(task)"
+              class="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full font-medium"
+            >⚡ 审阅</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop: Kanban columns -->
+    <div class="hidden md:flex gap-3 overflow-x-auto pb-2 flex-1">
       <div
         v-for="col in columns"
         :key="col.status"
@@ -92,13 +142,13 @@
   <Teleport to="body">
     <div
       v-if="detailTask"
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4"
+      class="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:px-4"
       @click.self="detailTask = null; reviewAction = ''"
     >
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto">
+      <div class="bg-white dark:bg-gray-800 sm:rounded-2xl rounded-t-2xl shadow-xl w-full sm:max-w-lg p-6 max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <div class="flex items-start justify-between mb-4">
           <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 pr-4">{{ detailTask.title }}</h3>
-          <button @click="detailTask = null; reviewAction = ''" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg leading-none">✕</button>
+          <button @click="detailTask = null; reviewAction = ''" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl leading-none p-1">✕</button>
         </div>
         <div class="space-y-3 text-sm text-gray-700 dark:text-gray-300">
           <div v-if="detailTask.description">
@@ -271,6 +321,7 @@ const store = usePincerStore()
 // ── Projects ──────────────────────────────────────────────────
 const projects = ref([])
 const selectedProjectId = ref('')
+const mobileStatus = ref('')  // '' = all, otherwise filter by status
 
 async function loadProjects() {
   try {
@@ -338,6 +389,23 @@ function tasksByStatus(status) {
   return visibleTasks.value
     .filter(t => t.status === status)
   // Backend (v0.8.10) already returns tasks sorted by updated_at DESC
+}
+
+// Mobile flat list: filter by mobileStatus ('' = all)
+const mobileTasks = computed(() =>
+  mobileStatus.value ? tasksByStatus(mobileStatus.value) : visibleTasks.value
+)
+
+function statusBadgeClass(s) {
+  const m = {
+    pending: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400',
+    running: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+    review: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
+    done: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+    failed: 'bg-red-100 dark:bg-red-900/30 text-red-500',
+    rejected: 'bg-red-100 dark:bg-red-900/30 text-red-500',
+  }
+  return m[s] || 'bg-gray-100 text-gray-400'
 }
 
 function agentName(id) {

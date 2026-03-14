@@ -95,7 +95,8 @@
     "reject_reason": "打回原因",
     "reject_placeholder": "请说明打回原因…",
     "confirm_reject": "确认打回",
-    "review_note": "审批备注："
+    "review_note": "审批备注：",
+    "all": "全部"
   },
   "projects": {
     "section_title": "项目",
