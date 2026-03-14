@@ -7,7 +7,7 @@
     <!-- Header -->
     <header class="bg-white dark:bg-gray-800 shadow-sm px-6 py-3 flex items-center justify-between flex-shrink-0">
       <div class="flex items-center gap-2">
-        <span class="text-xl">🦀</span>
+        <img src="/logo-transparent.png" alt="Pincer" class="w-7 h-7 object-contain" />
         <h1 class="text-lg font-bold tracking-tight">{{ $t('app.title') }}</h1>
         <!-- Current agent indicator -->
         <span

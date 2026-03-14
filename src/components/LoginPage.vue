@@ -3,7 +3,7 @@
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-8">
       <!-- Logo + Title -->
       <div class="flex flex-col items-center mb-8">
-        <span class="text-5xl mb-3">🦀</span>
+        <img src="/logo.png" alt="Pincer" class="w-16 h-16 object-contain mb-2" />
         <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ $t('app.title') }}</h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
           {{ step === 'connect' ? $t('login.connect_subtitle') : $t('login.select_room_subtitle') }}

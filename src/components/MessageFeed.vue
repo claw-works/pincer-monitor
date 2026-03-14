@@ -135,7 +135,10 @@
           @input="onInput"
           @keydown.escape="mentionList = []"
           @keydown.tab.prevent="mentionList.length && insertMention(mentionList[0])"
-          @keydown.enter.exact.prevent="sendMessage"
+          @keydown.enter.exact="onEnterKey"
+          @keydown.shift.enter.exact.prevent="inputText += '\n'"
+          @compositionstart="isComposing = true"
+          @compositionend="isComposing = false"
           rows="1"
           :placeholder="$t('feed.input_placeholder')"
           class="flex-1 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition resize-none min-h-[44px] max-h-32"
@@ -289,6 +292,13 @@ const DRAFT_KEY = 'pincer_room_draft'
 const inputText = ref(localStorage.getItem(DRAFT_KEY) || '')
 const sending = ref(false)
 const chatInputEl = ref(null)
+const isComposing = ref(false)  // IME composition state
+
+function onEnterKey(e) {
+  if (isComposing.value) return  // Don't send during CJK composition
+  e.preventDefault()
+  sendMessage()
+}
 const mentionList = ref([])
 
 watch(inputText, (val) => localStorage.setItem(DRAFT_KEY, val))

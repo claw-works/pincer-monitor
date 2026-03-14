@@ -140,16 +140,28 @@
         <div v-else-if="selectedPartnerId" class="flex gap-2">
           <textarea
             v-model="dmInput"
-            rows="2"
+            rows="1"
             :placeholder="$t('dm.input_placeholder')"
-            class="flex-1 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition resize-none"
+            class="flex-1 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition resize-none min-h-[44px] max-h-32"
+            style="field-sizing: content"
+            @keydown.enter.exact="onDmEnter"
+            @keydown.shift.enter.exact.prevent="dmInput += '\n'"
+            @compositionstart="dmComposing = true"
+            @compositionend="dmComposing = false"
           ></textarea>
           <button
             @click="sendDmMsg"
             :disabled="!dmInput.trim() || dmSending"
-            class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm transition flex-shrink-0"
+            class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white w-11 h-11 rounded-2xl text-sm transition flex-shrink-0 flex items-center justify-center"
+            :title="$t('dm.send')"
           >
-            {{ dmSending ? '…' : $t('dm.send') }}
+            <svg v-if="dmSending" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
           </button>
         </div>
         <div v-else class="text-xs text-gray-300 dark:text-gray-500 text-center py-1">{{ $t('dm.select_to_send') }}</div>
@@ -181,6 +193,13 @@ function draftKey(a, b) {
 }
 
 const dmInput = ref('')
+const dmComposing = ref(false)
+
+function onDmEnter(e) {
+  if (dmComposing.value) return
+  e.preventDefault()
+  sendDmMsg()
+}
 
 // Restore draft when conversation changes
 watch([() => agentAId.value, () => selectedPartnerId.value], ([a, b]) => {
