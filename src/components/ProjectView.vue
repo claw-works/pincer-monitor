@@ -351,12 +351,23 @@ function criteriaLines(text) {
 
 async function loadHierarchy() {
   hierarchyLoading.value = true
+  // Reset expanded state when reloading
+  expandedEpics.value = new Set()
+  expandedStories.value = new Set()
+  stories.value = {}
+  childTasks.value = {}
   try {
-    // Fetch all tasks, filter epics client-side (task_type=epic OR title starts with [Epic])
+    // Fetch all tasks, filter epics client-side
     const data = await fetchTasksByType('epic')
     const all = Array.isArray(data) ? data : (data.tasks || [])
-    // Filter: task_type=epic OR [Epic] prefix in title
-    const epicList = all.filter(t => t.task_type === 'epic' || /^\[epic\]/i.test(t.title))
+    // Filter: must be epic type/title
+    let epicList = all.filter(t => t.task_type === 'epic' || /^\[epic\]/i.test(t.title))
+    // Filter by selected project (or unclassified when no project selected)
+    if (selectedProject.value) {
+      epicList = epicList.filter(t => t.project_id === selectedProject.value.id)
+    } else {
+      epicList = epicList.filter(t => !t.project_id)
+    }
     epics.value = epicList
   } finally {
     hierarchyLoading.value = false
@@ -431,6 +442,12 @@ async function selectProject(project) {
   selectedProject.value = project
   activeTab.value = 'tasks'
   reports.value = []
+  // Reset hierarchy state when switching projects
+  epics.value = []
+  expandedEpics.value = new Set()
+  expandedStories.value = new Set()
+  stories.value = {}
+  childTasks.value = {}
   if (!project) return
   if (projectTasks.value[project.id] !== undefined) return
 
