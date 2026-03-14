@@ -34,7 +34,9 @@
     "no_rooms": "没有找到任何 Room",
     "back": "← 返回重新连接",
     "disclaimer": "配置保存在浏览器 localStorage，不会上传",
-    "connect_error": "连接失败：{msg}。请检查 URL 和 API Key 是否正确。"
+    "connect_error": "连接失败：{msg}。请检查 URL 和 API Key 是否正确。",
+    "step_connect": "连接",
+    "step_room": "选择 Room"
   },
   "agents": {
     "perspective_badge": "视角",
@@ -153,7 +155,15 @@
     "name_placeholder": "例如：Cloudbeer",
     "registering": "注册中…",
     "confirm_login": "确认登录",
-    "register_error": "注册失败：{msg}"
+    "register_error": "注册失败：{msg}",
+    "reset_key": "重置 API Key",
+    "resetting_key": "重置中…",
+    "reset_error": "重置失败",
+    "new_key_title": "新 API Key 已生成",
+    "new_key_desc": "新 Key 已自动保存到本地。请复制并妥善保管，旧 Key 已失效。",
+    "new_key_footer": "关闭后可在连接设置中查看当前 Key",
+    "copy_key": "复制 Key",
+    "copied": "已复制"
   },
   "reports": {
     "jobs": "报告任务",

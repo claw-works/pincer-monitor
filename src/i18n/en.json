@@ -34,7 +34,9 @@
     "no_rooms": "No rooms found",
     "back": "← Back to reconnect",
     "disclaimer": "Config is saved in browser localStorage and never uploaded",
-    "connect_error": "Connection failed: {msg}. Please check the URL and API Key."
+    "connect_error": "Connection failed: {msg}. Please check the URL and API Key.",
+    "step_connect": "Connect",
+    "step_room": "Select Room"
   },
   "agents": {
     "perspective_badge": "View",
@@ -147,7 +149,15 @@
     "name_placeholder": "e.g. Cloudbeer",
     "registering": "Registering…",
     "confirm_login": "Confirm Login",
-    "register_error": "Registration failed: {msg}"
+    "register_error": "Registration failed: {msg}",
+    "reset_key": "Reset API Key",
+    "resetting_key": "Resetting…",
+    "reset_error": "Reset failed",
+    "new_key_title": "New API Key Generated",
+    "new_key_desc": "Your new key has been saved locally. Please copy and keep it safe — the old key is now invalid.",
+    "new_key_footer": "You can view the current key in connection settings",
+    "copy_key": "Copy Key",
+    "copied": "Copied"
   },
   "reports": {
     "jobs": "Report Jobs",
