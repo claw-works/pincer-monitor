@@ -1,6 +1,6 @@
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex flex-col h-full">
-    <div class="font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center justify-between gap-2">
+  <div class="bg-white dark:bg-gray-800 sm:rounded-xl sm:shadow sm:p-4 p-0 flex flex-col h-full">
+    <div class="font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center justify-between gap-2 px-4 sm:px-0 pt-3 sm:pt-0">
       <span>{{ $t('feed.title') }}</span>
       <!-- Search toggle -->
       <button @click="searchOpen = !searchOpen; searchOpen || clearSearch()" class="text-xs text-gray-400 hover:text-indigo-500 transition">🔍</button>
@@ -47,7 +47,7 @@
     </div>
 
     <!-- Normal message list -->
-    <div v-else class="flex-1 overflow-y-auto space-y-2 pr-1" ref="scrollEl">
+    <div v-else class="flex-1 overflow-y-auto space-y-2 px-4 sm:px-0 pb-2" ref="scrollEl">
       <div v-if="!sorted.length" class="text-center text-gray-400 py-8 text-sm">{{ $t('feed.no_messages') }}</div>
 
       <div
@@ -65,7 +65,7 @@
         </div>
 
         <!-- Bubble -->
-        <div :class="['max-w-[72%] flex flex-col', isMine(msg) ? 'items-end' : 'items-start']">
+        <div :class="['max-w-[78%] sm:max-w-[72%] flex flex-col', isMine(msg) ? 'items-end' : 'items-start']">
           <!-- Sender name + time (others only) -->
           <div v-if="!isMine(msg)" class="flex items-center gap-1.5 mb-1">
             <span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{{ agentName(msg.sender_agent_id) }}</span>
@@ -110,7 +110,7 @@
       </div>
 
       <!-- Human sender: show input -->
-      <div v-else class="relative">
+      <div v-else class="relative px-4 sm:px-0 pb-3 sm:pb-0">
       <!-- @mention dropdown -->
       <div
         v-if="mentionList.length"
@@ -135,16 +135,25 @@
           @input="onInput"
           @keydown.escape="mentionList = []"
           @keydown.tab.prevent="mentionList.length && insertMention(mentionList[0])"
-          rows="2"
+          @keydown.enter.exact.prevent="sendMessage"
+          rows="1"
           :placeholder="$t('feed.input_placeholder')"
-          class="flex-1 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition resize-none"
+          class="flex-1 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition resize-none min-h-[44px] max-h-32"
+          style="field-sizing: content"
         ></textarea>
         <button
           @click="sendMessage"
           :disabled="!inputText.trim() || sending"
-          class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white px-4 rounded-xl text-sm transition flex-shrink-0 self-stretch"
+          class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 text-white w-11 h-11 rounded-2xl text-sm transition flex-shrink-0 flex items-center justify-center"
+          :title="$t('feed.send')"
         >
-          {{ sending ? $t('feed.sending') : $t('feed.send') }}
+          <svg v-if="sending" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+          <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+          </svg>
         </button>
       </div>
       </div>  <!-- end human-sender block -->

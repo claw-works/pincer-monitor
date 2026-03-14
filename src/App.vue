@@ -182,8 +182,8 @@
         </section>
 
         <!-- Room Messages — fills height -->
-        <section v-else-if="active === 'room'" class="flex-1 min-h-0 flex flex-col p-6">
-          <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 flex-shrink-0">
+        <section v-else-if="active === 'room'" class="flex-1 min-h-0 flex flex-col sm:p-6 p-0">
+          <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 flex-shrink-0 hidden sm:block px-4 sm:px-0 pt-4 sm:pt-0">
             {{ $t('app.room_messages') }}
           </h2>
           <div class="flex-1 min-h-0">
