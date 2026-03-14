@@ -109,7 +109,10 @@
     "status_label": "Status:",
     "assigned_label": "Assigned:",
     "updated_label": "Updated:",
-    "report_suffix": "Report"
+    "report_suffix": "Report",
+    "tab_hierarchy": "🏗️ Hierarchy",
+    "no_epics": "No Epics",
+    "no_stories": "No Stories"
   },
   "dm": {
     "perspective": "View:",

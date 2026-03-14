@@ -111,3 +111,10 @@ export const fetchJobReports = (jobId, { limit = 20, offset = 0 } = {}) =>
 
 export const fetchReport = (reportId) =>
   getClient().get(`/api/v1/reports/${reportId}`).then(r => r.data)
+
+// BMAD hierarchy: fetch tasks by parent_id or task_type
+export const fetchTasksByParent = (parentId, { limit = 100 } = {}) =>
+  getClient().get('/api/v1/tasks', { params: { parent_id: parentId, limit } }).then(r => r.data)
+
+export const fetchTasksByType = (taskType, { limit = 100 } = {}) =>
+  getClient().get('/api/v1/tasks', { params: { task_type: taskType, limit } }).then(r => r.data)

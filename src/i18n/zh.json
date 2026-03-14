@@ -115,7 +115,10 @@
     "status_label": "状态：",
     "assigned_label": "指派：",
     "updated_label": "更新：",
-    "report_suffix": "日报"
+    "report_suffix": "日报",
+    "tab_hierarchy": "🏗️ 层级",
+    "no_epics": "暂无 Epic",
+    "no_stories": "暂无 Story"
   },
   "dm": {
     "perspective": "视角：",

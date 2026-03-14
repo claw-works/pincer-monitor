@@ -62,16 +62,16 @@
       <!-- Tab bar (only when a project is selected) -->
       <div v-if="selectedProject" class="flex gap-1 mb-4 border-b border-gray-100 dark:border-gray-700 pb-0">
         <button
-          v-for="tab in ['tasks', 'reports']"
+          v-for="tab in ['tasks', 'hierarchy', 'reports']"
           :key="tab"
-          @click="activeTab = tab; tab === 'reports' && loadReports()"
+          @click="activeTab = tab; tab === 'reports' && loadReports(); tab === 'hierarchy' && loadHierarchy()"
           :class="[
             'px-3 py-1.5 text-xs font-medium rounded-t transition',
             activeTab === tab
               ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-b-2 border-indigo-500'
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           ]"
-        >{{ tab === 'tasks' ? $t('projects.tab_tasks') : $t('projects.tab_reports') }}</button>
+        >{{ tab === 'tasks' ? $t('projects.tab_tasks') : tab === 'hierarchy' ? $t('projects.tab_hierarchy') : $t('projects.tab_reports') }}</button>
       </div>
 
       <!-- Project meta: repo + overview -->
@@ -115,6 +115,91 @@
               <span v-if="task.assigned_agent_id" class="text-xs text-gray-400 font-mono">
                 → {{ agentName(task.assigned_agent_id) }}
               </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hierarchy tab (Epic → Story → Task) -->
+      <div v-if="activeTab === 'hierarchy'" class="space-y-3">
+        <div v-if="hierarchyLoading" class="text-sm text-gray-400 py-4">{{ $t('projects.loading') }}</div>
+        <div v-else-if="!epics.length" class="text-sm text-gray-400 italic py-8 text-center">
+          {{ $t('projects.no_epics') }}
+        </div>
+        <div v-else>
+          <div
+            v-for="epic in epics"
+            :key="epic.id"
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-600 shadow-sm overflow-hidden"
+          >
+            <!-- Epic header -->
+            <div
+              class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40 transition select-none"
+              @click="toggleEpic(epic.id)"
+            >
+              <span class="text-gray-400 text-xs w-3">{{ expandedEpics.has(epic.id) ? '▼' : '▶' }}</span>
+              <span class="flex-1 font-semibold text-gray-800 dark:text-gray-200 text-sm">{{ epicTitle(epic) }}</span>
+              <span :class="statusClass(epic.status)" class="text-xs px-2 py-0.5 rounded-full font-medium">{{ epic.status }}</span>
+              <!-- Progress bar -->
+              <div v-if="epicProgress(epic)" class="flex items-center gap-1.5 text-xs text-gray-400 flex-shrink-0">
+                <div class="w-20 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                  <div class="h-full bg-indigo-500 rounded-full transition-all" :style="{ width: epicProgress(epic).pct + '%' }"></div>
+                </div>
+                <span>{{ epicProgress(epic).done }}/{{ epicProgress(epic).total }}</span>
+              </div>
+            </div>
+
+            <!-- Stories under this epic -->
+            <div v-if="expandedEpics.has(epic.id)" class="border-t border-gray-100 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-700/50">
+              <div v-if="storiesLoading[epic.id]" class="px-6 py-3 text-xs text-gray-400">{{ $t('projects.loading') }}</div>
+              <div v-else-if="!stories[epic.id]?.length" class="px-6 py-3 text-xs text-gray-400 italic">{{ $t('projects.no_stories') }}</div>
+              <div
+                v-for="story in (stories[epic.id] || [])"
+                :key="story.id"
+              >
+                <!-- Story header -->
+                <div
+                  class="flex items-center gap-3 pl-8 pr-4 py-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40 transition select-none"
+                  @click="toggleStory(story.id, epic.id)"
+                >
+                  <span class="text-gray-400 text-xs w-3">{{ expandedStories.has(story.id) ? '▼' : '▶' }}</span>
+                  <span class="flex-1 text-sm text-gray-700 dark:text-gray-300">{{ storyTitle(story) }}</span>
+                  <span :class="statusClass(story.status)" class="text-xs px-2 py-0.5 rounded-full font-medium">{{ story.status }}</span>
+                </div>
+
+                <!-- Tasks under this story -->
+                <div v-if="expandedStories.has(story.id)" class="divide-y divide-gray-50 dark:divide-gray-700/30">
+                  <div v-if="tasksLoading[story.id]" class="pl-14 pr-4 py-2 text-xs text-gray-400">{{ $t('projects.loading') }}</div>
+                  <div v-else-if="!childTasks[story.id]?.length" class="pl-14 pr-4 py-2 text-xs text-gray-400 italic">{{ $t('projects.no_tasks') }}</div>
+                  <div
+                    v-for="task in (childTasks[story.id] || [])"
+                    :key="task.id"
+                    class="pl-14 pr-4 py-2"
+                  >
+                    <div class="flex items-start justify-between gap-2">
+                      <span class="text-sm text-gray-700 dark:text-gray-300 flex-1">{{ task.title }}</span>
+                      <span :class="statusClass(task.status)" class="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0">{{ task.status }}</span>
+                    </div>
+                    <!-- user_story -->
+                    <div v-if="task.user_story" class="mt-1 text-xs text-gray-500 dark:text-gray-400 italic">
+                      📖 {{ task.user_story }}
+                    </div>
+                    <!-- acceptance_criteria -->
+                    <div v-if="task.acceptance_criteria" class="mt-1.5">
+                      <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">验收标准</p>
+                      <ul class="space-y-0.5">
+                        <li
+                          v-for="(line, i) in criteriaLines(task.acceptance_criteria)"
+                          :key="i"
+                          class="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-400"
+                        >
+                          <span class="text-green-400 flex-shrink-0 mt-0.5">✓</span>{{ line }}
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -210,7 +295,7 @@ import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { usePincerStore } from '../stores/pincer'
-import { fetchProjects, fetchProjectTasks, fetchProjectReports } from '../api'
+import { fetchProjects, fetchProjectTasks, fetchProjectReports, fetchTasksByParent, fetchTasksByType } from '../api'
 
 useI18n()
 const store = usePincerStore()
@@ -227,7 +312,94 @@ const reports = ref([])
 const loadingReports = ref(false)
 const selectedReport = ref(null)
 
-// Tasks with no project_id from the global store
+// ── Hierarchy (Epic → Story → Task) ─────────────────────────
+const epics = ref([])
+const hierarchyLoading = ref(false)
+const expandedEpics = ref(new Set())
+const expandedStories = ref(new Set())
+const stories = ref({})       // epic.id → Story[]
+const storiesLoading = ref({}) // epic.id → bool
+const childTasks = ref({})    // story.id → Task[]
+const tasksLoading = ref({})  // story.id → bool
+
+function epicTitle(t) { return t.title.replace(/^\[Epic\]\s*/i, '') }
+function storyTitle(t) { return t.title.replace(/^\[Story\]\s*/i, '') }
+
+function statusClass(s) {
+  const m = {
+    pending: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400',
+    running: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+    review: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
+    done: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+    failed: 'bg-red-100 dark:bg-red-900/30 text-red-500',
+    rejected: 'bg-red-100 dark:bg-red-900/30 text-red-500',
+  }
+  return m[s] || 'bg-gray-100 text-gray-400'
+}
+
+function epicProgress(epic) {
+  const children = stories.value[epic.id]
+  if (!children?.length) return null
+  const done = children.filter(t => t.status === 'done').length
+  return { done, total: children.length, pct: Math.round(done / children.length * 100) }
+}
+
+function criteriaLines(text) {
+  if (!text) return []
+  return text.split('\n').map(l => l.replace(/^[-*]\s*|\[.\]\s*/g, '').trim()).filter(Boolean)
+}
+
+async function loadHierarchy() {
+  hierarchyLoading.value = true
+  try {
+    // Fetch all tasks, filter epics client-side (task_type=epic OR title starts with [Epic])
+    const data = await fetchTasksByType('epic')
+    const all = Array.isArray(data) ? data : (data.tasks || [])
+    // Filter: task_type=epic OR [Epic] prefix in title
+    const epicList = all.filter(t => t.task_type === 'epic' || /^\[epic\]/i.test(t.title))
+    epics.value = epicList
+  } finally {
+    hierarchyLoading.value = false
+  }
+}
+
+async function toggleEpic(epicId) {
+  if (expandedEpics.value.has(epicId)) {
+    expandedEpics.value = new Set([...expandedEpics.value].filter(id => id !== epicId))
+    return
+  }
+  expandedEpics.value = new Set([...expandedEpics.value, epicId])
+  if (!stories.value[epicId]) {
+    storiesLoading.value = { ...storiesLoading.value, [epicId]: true }
+    try {
+      const data = await fetchTasksByParent(epicId)
+      const list = Array.isArray(data) ? data : (data.tasks || [])
+      stories.value = { ...stories.value, [epicId]: list }
+    } finally {
+      storiesLoading.value = { ...storiesLoading.value, [epicId]: false }
+    }
+  }
+}
+
+async function toggleStory(storyId, epicId) {
+  if (expandedStories.value.has(storyId)) {
+    expandedStories.value = new Set([...expandedStories.value].filter(id => id !== storyId))
+    return
+  }
+  expandedStories.value = new Set([...expandedStories.value, storyId])
+  if (!childTasks.value[storyId]) {
+    tasksLoading.value = { ...tasksLoading.value, [storyId]: true }
+    try {
+      const data = await fetchTasksByParent(storyId)
+      const list = Array.isArray(data) ? data : (data.tasks || [])
+      childTasks.value = { ...childTasks.value, [storyId]: list }
+    } finally {
+      tasksLoading.value = { ...tasksLoading.value, [storyId]: false }
+    }
+  }
+}
+
+
 const unclassifiedTasks = computed(() =>
   store.tasks.filter(t => !t.project_id)
 )
