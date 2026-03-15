@@ -5,7 +5,7 @@
   <!-- Main dashboard -->
   <div v-else class="h-screen flex flex-col bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     <!-- Header -->
-    <header class="bg-white dark:bg-gray-800 shadow-sm px-6 py-3 flex items-center justify-between flex-shrink-0">
+    <header class="bg-white dark:bg-gray-800 shadow-sm px-3 sm:px-6 py-3 flex items-center justify-between flex-shrink-0">
       <div class="flex items-center gap-2">
         <img src="/logo-transparent.png" alt="Pincer" class="w-7 h-7 object-contain" />
         <h1 class="text-lg font-bold tracking-tight">{{ $t('app.title') }}</h1>
@@ -104,7 +104,7 @@
     <div class="flex flex-1 min-h-0">
 
       <!-- Sidebar -->
-      <nav class="w-52 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0 overflow-hidden">
+      <nav class="hidden sm:flex w-52 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-col flex-shrink-0 overflow-hidden">
 
         <!-- Nav items (top) -->
         <div class="py-3 flex flex-col gap-0.5">
@@ -200,7 +200,7 @@
         </section>
 
         <!-- Tasks -->
-        <section v-else-if="active === 'tasks'" class="flex-1 min-h-0 flex flex-col p-6">
+        <section v-else-if="active === 'tasks'" class="flex-1 min-h-0 flex flex-col sm:p-6 p-2">
           <TaskBoard class="flex-1 min-h-0" />
         </section>
 
@@ -223,7 +223,7 @@
         </section>
 
         <!-- DMs — fills height -->
-        <section v-else-if="active === 'dm'" class="flex-1 min-h-0 flex flex-col p-6">
+        <section v-else-if="active === 'dm'" class="flex-1 min-h-0 flex flex-col sm:p-6 p-0">
           <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 flex-shrink-0">
             {{ $t('app.private_messages') }}
           </h2>
@@ -234,6 +234,23 @@
 
       </main>
     </div>
+
+    <!-- Mobile bottom tab bar (sm: hidden) -->
+    <nav class="sm:hidden flex items-stretch bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 safe-area-pb">
+      <button
+        v-for="item in navItems"
+        :key="item.key"
+        @click="active = item.key"
+        class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs relative transition"
+        :class="active === item.key ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'"
+      >
+        <span class="text-lg leading-none">{{ item.icon }}</span>
+        <span class="text-[10px] font-medium">{{ item.label }}</span>
+        <span v-if="item.badge" class="absolute top-1 right-1/4 bg-red-400 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+          {{ item.badge > 99 ? '99+' : item.badge }}
+        </span>
+      </button>
+    </nav>
   </div>
 </template>
 
