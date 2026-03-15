@@ -80,6 +80,14 @@
           >
             <ProfileSetup @close="identityOpen = false" />
           </div>
+          <!-- Click-outside backdrop to close popup (39f0b48c) -->
+          <Teleport to="body">
+            <div
+              v-if="identityOpen"
+              class="fixed inset-0 z-40"
+              @click="identityOpen = false"
+            />
+          </Teleport>
         </div>
 
         <button

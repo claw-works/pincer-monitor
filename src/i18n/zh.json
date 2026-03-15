@@ -164,7 +164,9 @@
     "new_key_desc": "新 Key 已自动保存到本地。请复制并妥善保管，旧 Key 已失效。",
     "new_key_footer": "关闭后可在连接设置中查看当前 Key",
     "copy_key": "复制 Key",
-    "copied": "已复制"
+    "copied": "已复制",
+    "select_existing": "选择已注册身份",
+    "or_create": "或创建新身份"
   },
   "reports": {
     "jobs": "报告任务",

@@ -158,7 +158,9 @@
     "new_key_desc": "Your new key has been saved locally. Please copy and keep it safe — the old key is now invalid.",
     "new_key_footer": "You can view the current key in connection settings",
     "copy_key": "Copy Key",
-    "copied": "Copied"
+    "copied": "Copied",
+    "select_existing": "Select Existing Identity",
+    "or_create": "Or create new"
   },
   "reports": {
     "jobs": "Report Jobs",
