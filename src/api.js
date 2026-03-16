@@ -34,9 +34,9 @@ export const fetchAgentMessages = (agentId, { from, limit = 100 } = {}) =>
 export const registerHuman = (name = 'You') =>
   getClient().post('/api/v1/agents/register', { name, type: 'human' }).then(r => r.data)
 
-// Register as human identity (upsert via auth endpoint)
+// Register as human identity — multi-human: find-or-create by name, no user hijack
 export const registerHumanIdentity = (name) =>
-  getClient().post('/api/v1/auth/register-human', { name }).then(r => r.data)
+  getClient().post('/api/v1/agents/register-human', { name }).then(r => r.data)
 
 // Send room message as human
 export const sendRoomMessage = (roomId, senderAgentId, content) =>
