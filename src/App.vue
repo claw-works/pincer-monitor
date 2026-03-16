@@ -76,7 +76,7 @@
           <!-- Identity dropdown -->
           <div
             v-if="identityOpen"
-            class="absolute right-0 top-10 z-50 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4"
+            class="absolute right-0 top-10 z-50 w-96 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4"
           >
             <ProfileSetup @close="identityOpen = false" />
           </div>

@@ -161,7 +161,8 @@
     "copied": "Copied",
     "select_existing": "Select Existing Identity",
     "or_create": "Or create new",
-    "switch_account": "Switch account"
+    "switch_account": "Switch account",
+    "add_new": "Add new identity"
   },
   "reports": {
     "jobs": "Report Jobs",

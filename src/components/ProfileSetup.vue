@@ -39,6 +39,27 @@
         </div>
       </div>
 
+      <!-- Register a new human identity without logging out -->
+      <div class="border-t border-gray-100 dark:border-gray-700 pt-4">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{{ $t('profile.add_new') }}</p>
+        <form @submit.prevent="registerNew" class="flex items-center gap-2">
+          <input
+            v-model="newName"
+            type="text"
+            :placeholder="$t('profile.name_placeholder')"
+            class="flex-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+          />
+          <button
+            type="submit"
+            :disabled="loadingNew || !newName.trim()"
+            class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold px-3 py-2 rounded-lg transition whitespace-nowrap"
+          >
+            {{ loadingNew ? '…' : $t('profile.confirm_login') }}
+          </button>
+        </form>
+        <p v-if="newError" class="text-xs text-red-500 mt-1">⚠ {{ newError }}</p>
+      </div>
+
       <div class="flex items-center gap-4 pt-1">
         <button @click="logout" class="text-xs text-red-400 hover:text-red-600 transition">
           {{ $t('profile.logout') }}
@@ -212,6 +233,28 @@ async function register() {
     error.value = t('profile.register_error', { msg: e.message })
   } finally {
     loading.value = false
+  }
+}
+
+// ── Add new identity while logged in ─────────────────────────
+const newName = ref('')
+const loadingNew = ref(false)
+const newError = ref('')
+
+async function registerNew() {
+  newError.value = ''
+  loadingNew.value = true
+  try {
+    const data = await registerHumanIdentity(newName.value.trim())
+    const agent = { id: data.id, name: data.name, type: 'human', status: 'online' }
+    bindAgent(agent)
+    await store.refreshAgents()
+    newName.value = ''
+    emit('close')
+  } catch (e) {
+    newError.value = t('profile.register_error', { msg: e.message })
+  } finally {
+    loadingNew.value = false
   }
 }
 

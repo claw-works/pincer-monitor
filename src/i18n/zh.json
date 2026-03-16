@@ -167,7 +167,8 @@
     "copied": "已复制",
     "select_existing": "选择已注册身份",
     "or_create": "或创建新身份",
-    "switch_account": "切换账号"
+    "switch_account": "切换账号",
+    "add_new": "注册新身份"
   },
   "reports": {
     "jobs": "报告任务",
