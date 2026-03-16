@@ -135,7 +135,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePincerStore } from '../stores/pincer'
-import { registerHuman, resetApiKey } from '../api'
+import { registerHumanIdentity, resetApiKey } from '../api'
 import { saveHumanAgentId, saveConnection, getPincerBase, saveIsHuman, getHumanName, saveHumanName } from '../config'
 
 const { t } = useI18n()
@@ -183,7 +183,9 @@ async function register() {
   error.value = ''
   loading.value = true
   try {
-    const agent = await registerHuman(name.value.trim())
+    // New endpoint: POST /auth/register-human → { human_agent_id, name }
+    const data = await registerHumanIdentity(name.value.trim())
+    const agent = { id: data.human_agent_id, name: data.name, type: 'human', status: 'online' }
     bindAgent(agent)
     await store.refreshAgents()
     emit('close')
