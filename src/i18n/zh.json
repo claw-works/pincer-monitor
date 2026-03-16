@@ -166,7 +166,8 @@
     "copy_key": "复制 Key",
     "copied": "已复制",
     "select_existing": "选择已注册身份",
-    "or_create": "或创建新身份"
+    "or_create": "或创建新身份",
+    "switch_account": "切换账号"
   },
   "reports": {
     "jobs": "报告任务",

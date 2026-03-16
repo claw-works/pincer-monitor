@@ -21,6 +21,24 @@
 
       <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t('profile.logged_in_desc') }}</p>
 
+      <!-- Switch account section -->
+      <div v-if="otherHumans.length" class="border-t border-gray-100 dark:border-gray-700 pt-4">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{{ $t('profile.switch_account') }}</p>
+        <div class="space-y-1.5 max-h-36 overflow-y-auto">
+          <button
+            v-for="agent in otherHumans"
+            :key="agent.id"
+            @click="selectExistingAgent(agent)"
+            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-300 transition text-left"
+          >
+            <div class="w-7 h-7 rounded-full bg-indigo-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              {{ (agent.name || agent.id).charAt(0).toUpperCase() }}
+            </div>
+            <span class="text-sm text-gray-700 dark:text-gray-300">{{ agent.name || agent.id.slice(0,8) }}</span>
+          </button>
+        </div>
+      </div>
+
       <div class="flex items-center gap-4 pt-1">
         <button @click="logout" class="text-xs text-red-400 hover:text-red-600 transition">
           {{ $t('profile.logout') }}
@@ -150,6 +168,7 @@ const error = ref('')
 
 // Human agents that already exist (for selection)
 const humanAgents = computed(() => store.agents.filter(a => a.type === 'human'))
+const otherHumans = computed(() => store.agents.filter(a => a.type === 'human' && a.id !== store.humanAgentId))
 
 const displayName = computed(() => {
   const saved = getHumanName()
@@ -183,9 +202,9 @@ async function register() {
   error.value = ''
   loading.value = true
   try {
-    // New endpoint: POST /auth/register-human → { human_agent_id, name }
+    // POST /auth/register-human → { id, name, type, ... } (upsert-by-name)
     const data = await registerHumanIdentity(name.value.trim())
-    const agent = { id: data.human_agent_id, name: data.name, type: 'human', status: 'online' }
+    const agent = { id: data.id, name: data.name, type: 'human', status: 'online' }
     bindAgent(agent)
     await store.refreshAgents()
     emit('close')

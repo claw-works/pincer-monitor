@@ -160,7 +160,8 @@
     "copy_key": "Copy Key",
     "copied": "Copied",
     "select_existing": "Select Existing Identity",
-    "or_create": "Or create new"
+    "or_create": "Or create new",
+    "switch_account": "Switch account"
   },
   "reports": {
     "jobs": "Report Jobs",
