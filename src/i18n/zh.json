@@ -54,10 +54,10 @@
     "no_messages": "暂无消息",
     "perspective_readonly": "{name} 视角（只读）",
     "need_profile": "请先设置身份才能发消息 →",
-    "input_placeholder": "发消息到 Room… (@提及)",
+    "input_placeholder": "发消息到 Room… ({'@'}提及)",
     "send": "发送",
     "sending": "…",
-    "all_mention_label": "@all（@所有人）",
+    "all_mention_label": "{'@'}all（{'@'}所有人）",
     "system": "System"
   },
   "tasks": {

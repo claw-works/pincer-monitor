@@ -54,10 +54,10 @@
     "no_messages": "No messages",
     "perspective_readonly": "{name} view (read-only)",
     "need_profile": "Please set up your identity to send messages →",
-    "input_placeholder": "Send to Room… (@mention)",
+    "input_placeholder": "Send to Room… ({'@'}mention)",
     "send": "Send",
     "sending": "…",
-    "all_mention_label": "@all (everyone)",
+    "all_mention_label": "{'@'}all (everyone)",
     "system": "System"
   },
   "tasks": {
