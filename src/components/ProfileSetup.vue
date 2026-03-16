@@ -246,11 +246,13 @@ async function registerNew() {
   loadingNew.value = true
   try {
     const data = await registerHumanIdentity(newName.value.trim())
-    const agent = { id: data.id, name: data.name, type: 'human', status: 'online' }
-    bindAgent(agent)
+    // Only register — do NOT switch identity, just refresh the agent list
+    const existing = store.agents.findIndex(a => a.id === data.id)
+    if (existing < 0) {
+      store.agents.push({ id: data.id, name: data.name, type: 'human', status: 'online' })
+    }
     await store.refreshAgents()
     newName.value = ''
-    emit('close')
   } catch (e) {
     newError.value = t('profile.register_error', { msg: e.message })
   } finally {
