@@ -19,7 +19,9 @@
     "messages_section": "信息",
     "room_name": "议事厅",
     "perspective_section": "视角切换",
-    "my_perspective": "我的视角"
+    "my_perspective": "我的视角",
+    "group_section": "项目群",
+    "partners_section": "伙伴"
   },
   "nav": {
     "room": "公共频道",

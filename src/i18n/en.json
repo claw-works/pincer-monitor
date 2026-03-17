@@ -19,7 +19,9 @@
     "messages_section": "Messages",
     "room_name": "Room",
     "perspective_section": "Perspectives",
-    "my_perspective": "My Perspective"
+    "my_perspective": "My Perspective",
+    "group_section": "Groups",
+    "partners_section": "Partners"
   },
   "nav": {
     "room": "Room",

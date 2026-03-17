@@ -171,7 +171,7 @@ import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import { usePincerStore } from '../stores/pincer'
 import { sendRoomMessage, searchRoomMessages, fetchMessages } from '../api'
-import { getRoomId } from '../config'
+import { getRoomId, getPincerBase, getApiKey } from '../config'
 
 // Accept optional roomId prop for project rooms
 const props = defineProps({
@@ -220,13 +220,13 @@ const isAiPerspective = computed(() => {
 // (perspective/视角 only affects which agent's messages you view, not who you send as)
 const currentRoomSender = computed(() => store.humanAgentId || null)
 
-// Project room messages (separate from store for non-default rooms)
+// Project room messages (WebSocket, same as default room WS but per-room)
 const projectMessages = ref([])
 const projectMsgLoading = ref(false)
 
 async function loadProjectMessages() {
   const rid = effectiveRoomId()
-  if (!rid || rid === getRoomId()) return  // default room uses store.messages
+  if (!rid || rid === getRoomId()) return
   projectMsgLoading.value = true
   try {
     const msgs = await fetchMessages(rid, { limit: 50 })
@@ -237,18 +237,56 @@ async function loadProjectMessages() {
 }
 
 // Load project room messages when component mounts or roomId changes
-watch(() => props.roomId, () => { projectMessages.value = []; loadProjectMessages() })
+watch(() => props.roomId, () => { projectMessages.value = []; loadProjectMessages() }, { immediate: true })
 onMounted(() => { loadProjectMessages() })
 
-// Poll project room messages (3s)
-let projectPollTimer = null
-watch(() => props.roomId, (rid) => {
-  if (projectPollTimer) clearInterval(projectPollTimer)
-  if (rid && rid !== getRoomId()) {
-    projectPollTimer = setInterval(loadProjectMessages, 3000)
+// WebSocket for project room real-time messages (replaces polling)
+let projectWs = null
+let projectWsReconnectTimer = null
+let projectWsReconnectDelay = 2000
+let projectWsStopped = false
+
+function connectProjectWs(roomId) {
+  if (!roomId || roomId === getRoomId()) return
+  disconnectProjectWs()
+  projectWsStopped = false
+  const base = getPincerBase()
+  const apiKey = getApiKey()
+  const wsBase = base.replace(/^http/, 'ws')
+  const url = `${wsBase}/api/v1/rooms/${roomId}/ws?api_key=${encodeURIComponent(apiKey)}`
+  projectWs = new WebSocket(url)
+  projectWs.onopen = () => { projectWsReconnectDelay = 2000 }
+  projectWs.onmessage = (e) => {
+    try {
+      const envelope = JSON.parse(e.data)
+      if (envelope.type !== 'room.message') return
+      const data = envelope.payload ?? envelope.data
+      if (!data?.id) return
+      projectMessages.value = [...projectMessages.value.filter(m => m.id !== data.id), data]
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    } catch { /* ignore */ }
   }
+  projectWs.onclose = () => {
+    if (projectWsStopped) return
+    projectWsReconnectTimer = setTimeout(() => {
+      projectWsReconnectDelay = Math.min(projectWsReconnectDelay * 1.5, 30000)
+      connectProjectWs(roomId)
+    }, projectWsReconnectDelay)
+  }
+  projectWs.onerror = () => projectWs?.close()
+}
+
+function disconnectProjectWs() {
+  projectWsStopped = true
+  if (projectWsReconnectTimer) { clearTimeout(projectWsReconnectTimer); projectWsReconnectTimer = null }
+  if (projectWs) { projectWs.onclose = null; projectWs.close(); projectWs = null }
+}
+
+watch(() => props.roomId, (rid) => {
+  disconnectProjectWs()
+  if (rid && rid !== getRoomId()) connectProjectWs(rid)
 }, { immediate: true })
-onUnmounted(() => { if (projectPollTimer) clearInterval(projectPollTimer) })
+onUnmounted(() => disconnectProjectWs())
 
 // Use project messages if in project room, otherwise store messages
 const activeMessages = computed(() => {

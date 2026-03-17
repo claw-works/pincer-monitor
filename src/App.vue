@@ -128,21 +128,20 @@
         sidebarOpen ? 'flex fixed left-0 top-0 h-full w-64 z-40 shadow-xl pt-14' : 'hidden',
       ]">
 
-        <!-- 信息 section: 议事厅 + agent DM list -->
-        <div class="border-t border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden" style="min-height: 0; flex: 1 1 0;">
-          <!-- Section header -->
-          <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide flex-shrink-0">
-            {{ $t('app.messages_section') }}
+        <!-- 项目群 section: 议事厅 + project rooms -->
+        <div class="border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
+          <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            {{ $t('app.group_section') }}
           </div>
           <!-- 议事厅 -->
           <button
             @click="active = 'room'; sidebarOpen = false"
             :class="[
-              'flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition mx-2 rounded-lg',
+              'flex items-center gap-2.5 px-4 py-2 text-sm font-medium transition mx-2 rounded-lg',
               active === 'room' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
             ]"
           >
-            <span>💬</span><span>{{ $t('app.room_name') }}</span>
+            <span>💬</span><span class="hidden sm:inline">{{ $t('app.room_name') }}</span>
             <span v-if="store.messages.length > 0" class="ml-auto text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 px-1.5 py-0.5 rounded-full">{{ store.messages.length }}</span>
           </button>
           <!-- Project rooms -->
@@ -158,10 +157,15 @@
             ]"
           >
             <span class="text-sm flex-shrink-0">📁</span>
-            <span class="text-xs font-medium truncate">{{ project.name }}</span>
+            <span class="text-xs font-medium truncate hidden sm:block">{{ project.name }}</span>
           </button>
+        </div>
 
-          <!-- Agent DM list -->
+        <!-- 伙伴 section: humans + agents (DM) -->
+        <div class="border-t border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden" style="min-height: 0; flex: 1 1 0;">
+          <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide flex-shrink-0">
+            {{ $t('app.partners_section') }}
+          </div>
           <div class="overflow-y-auto flex-1 pb-2">
             <button
               v-for="agent in sidebarAgents"
@@ -172,14 +176,13 @@
                 active === 'dm' && dmTargetId === agent.id ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''
               ]"
             >
-              <!-- Human: show 👤 icon; Agent: show online/offline dot -->
               <template v-if="agent.type === 'human'">
                 <span class="text-sm flex-shrink-0">👤</span>
               </template>
               <template v-else>
                 <span class="w-2 h-2 rounded-full flex-shrink-0" :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300 dark:bg-gray-500'"></span>
               </template>
-              <div class="min-w-0 flex-1">
+              <div class="min-w-0 flex-1 hidden sm:block">
                 <span class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate block">{{ agent.name || agent.id.slice(0, 8) }}</span>
               </div>
             </button>
