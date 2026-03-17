@@ -7,6 +7,17 @@
     <!-- Header -->
     <header class="bg-white dark:bg-gray-800 shadow-sm px-3 sm:px-6 py-3 flex items-center justify-between flex-shrink-0">
       <div class="flex items-center gap-2">
+        <!-- Hamburger button (mobile only) -->
+        <button
+          class="sm:hidden p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition mr-1"
+          @click="sidebarOpen = !sidebarOpen"
+          :aria-label="sidebarOpen ? '关闭菜单' : '打开菜单'"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path v-if="!sidebarOpen" stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+            <path v-else stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
         <img src="/logo-transparent.png" alt="Pincer" class="w-7 h-7 object-contain" />
         <h1 class="text-lg font-bold tracking-tight">{{ $t('app.title') }}</h1>
         <!-- Current agent indicator -->
@@ -104,31 +115,18 @@
     <div class="flex flex-1 min-h-0">
 
       <!-- Sidebar -->
-      <nav class="hidden sm:flex w-52 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-col flex-shrink-0 overflow-hidden">
-
-        <!-- Nav items (top) -->
-        <div class="py-3 flex flex-col gap-0.5">
-          <button
-            v-for="item in navItems"
-            :key="item.key"
-            @click="active = item.key"
-            :class="[
-              'flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg mx-2 transition text-left',
-              active === item.key
-                ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
-            ]"
-          >
-            <span class="text-base">{{ item.icon }}</span>
-            <span>{{ item.label }}</span>
-            <span
-              v-if="item.badge !== undefined && item.badge > 0"
-              class="ml-auto text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full"
-            >
-              {{ item.badge }}
-            </span>
-          </button>
-        </div>
+      <!-- Sidebar: fixed on desktop, drawer on mobile -->
+      <!-- Mobile backdrop -->
+      <div
+        v-if="sidebarOpen"
+        class="fixed inset-0 bg-black/30 z-30 sm:hidden"
+        @click="sidebarOpen = false"
+      />
+      <nav :class="[
+        'bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-col flex-shrink-0 overflow-hidden',
+        'sm:flex sm:relative sm:w-52 sm:z-auto',
+        sidebarOpen ? 'flex fixed left-0 top-0 h-full w-64 z-40 shadow-xl pt-14' : 'hidden',
+      ]">
 
         <!-- 信息 section: 议事厅 + agent DM list -->
         <div class="border-t border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden" style="min-height: 0; flex: 1 1 0;">
@@ -138,7 +136,7 @@
           </div>
           <!-- 议事厅 -->
           <button
-            @click="active = 'room'"
+            @click="active = 'room'; sidebarOpen = false"
             :class="[
               'flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition mx-2 rounded-lg',
               active === 'room' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -170,6 +168,30 @@
               </div>
             </button>
           </div>
+        </div>
+
+        <!-- Nav items (top) -->
+        <div class="py-3 flex flex-col gap-0.5">
+          <button
+            v-for="item in navItems"
+            :key="item.key"
+            @click="active = item.key; sidebarOpen = false"
+            :class="[
+              'flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg mx-2 transition text-left',
+              active === item.key
+                ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+            ]"
+          >
+            <span class="text-base">{{ item.icon }}</span>
+            <span>{{ item.label }}</span>
+            <span
+              v-if="item.badge !== undefined && item.badge > 0"
+              class="ml-auto text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full"
+            >
+              {{ item.badge }}
+            </span>
+          </button>
         </div>
 
         <!-- 切换视角 (collapsible) -->
@@ -268,7 +290,7 @@
       <button
         v-for="item in navItems"
         :key="item.key"
-        @click="active = item.key"
+        @click="active = item.key; sidebarOpen = false"
         class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs relative transition"
         :class="active === item.key ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'"
       >
@@ -305,10 +327,12 @@ const configured = ref(isConfigured())
 const active = ref(localStorage.getItem('pincer_active_tab') || 'room')
 const perspectiveOpen = ref(false)  // 切换视角 collapse state
 const dmTargetId = ref('')  // which agent DM is selected in sidebar
+const sidebarOpen = ref(false)  // mobile drawer state
 
 function selectAgentDM(agent) {
   dmTargetId.value = agent.id
   active.value = 'dm'
+  sidebarOpen.value = false  // close drawer on mobile
 }
 
 watch(active, (val) => {
