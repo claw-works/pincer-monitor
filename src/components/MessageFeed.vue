@@ -323,7 +323,7 @@ function onInput(e) {
   const allMatch = !query || 'all'.includes(query) || '所有人'.includes(query)
   const agentMatches = store.agents
     .filter(a => (a.name || a.id).toLowerCase().includes(query))
-    .slice(0, allMatch ? 9 : 10)  // leave room for @all when it matches
+    .slice(0, allMatch ? 19 : 20)  // leave room for @all when it matches
   mentionList.value = allMatch ? [allMentionEntry.value, ...agentMatches] : agentMatches
 }
 

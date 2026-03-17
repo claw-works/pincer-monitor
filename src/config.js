@@ -2,7 +2,7 @@
 export const BUILD_TIME_BASE = import.meta.env.VITE_PINCER_BASE || ''
 
 export function getPincerBase() {
-  return localStorage.getItem('pincer_url') || BUILD_TIME_BASE || 'http://localhost:8080'
+  return (localStorage.getItem('pincer_url') || BUILD_TIME_BASE || 'http://localhost:8080').replace(/\/+$/, '')
 }
 
 export function getApiKey() {
@@ -27,7 +27,8 @@ export function isConfigured() {
 
 // Save URL + API Key (step 1 of login)
 export function saveConnection({ url, apiKey }) {
-  localStorage.setItem('pincer_url', url)
+  // Strip trailing slash to prevent WS URL issues (e.g. wss://host//api/v1/...)
+  localStorage.setItem('pincer_url', (url || '').replace(/\/+$/, ''))
   localStorage.setItem('pincer_api_key', apiKey)
 }
 
