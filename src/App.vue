@@ -130,47 +130,68 @@
           </button>
         </div>
 
-        <!-- Divider + Agents section (bottom, scrollable) -->
-        <div class="border-t border-gray-100 dark:border-gray-700 flex flex-col min-h-0 flex-1 overflow-hidden">
+        <!-- 信息 section: 议事厅 + agent DM list -->
+        <div class="border-t border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden" style="min-height: 0; flex: 1 1 0;">
+          <!-- Section header -->
           <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide flex-shrink-0">
-            {{ $t('app.agents_section') }}
-            <span class="normal-case font-normal text-gray-300 dark:text-gray-500 ml-1">{{ $t('app.click_to_switch') }}</span>
+            {{ $t('app.messages_section') }}
           </div>
-          <div class="overflow-y-auto flex-1 pb-3">
+          <!-- 议事厅 -->
+          <button
+            @click="active = 'room'"
+            :class="[
+              'flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition mx-2 rounded-lg',
+              active === 'room' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+            ]"
+          >
+            <span>💬</span><span>{{ $t('app.room_name') }}</span>
+            <span v-if="store.messages.length > 0" class="ml-auto text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 px-1.5 py-0.5 rounded-full">{{ store.messages.length }}</span>
+          </button>
+          <!-- Agent DM list -->
+          <div class="overflow-y-auto flex-1 pb-2">
+            <button
+              v-for="agent in sidebarAgents"
+              :key="agent.id + '_dm'"
+              @click="selectAgentDM(agent)"
+              :class="[
+                'w-full flex items-center gap-2 px-4 py-2 text-left transition hover:bg-gray-50 dark:hover:bg-gray-700',
+                active === 'dm' && dmTargetId === agent.id ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''
+              ]"
+            >
+              <span class="w-2 h-2 rounded-full flex-shrink-0" :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300 dark:bg-gray-500'"></span>
+              <div class="min-w-0 flex-1">
+                <span class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate block">{{ agent.name || agent.id.slice(0, 8) }}</span>
+              </div>
+              <span v-if="agent.type === 'human'" class="text-blue-300 text-xs flex-shrink-0">👤</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 切换视角 (collapsible) -->
+        <div class="border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
+          <button
+            @click="perspectiveOpen = !perspectiveOpen"
+            class="w-full flex items-center justify-between px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+          >
+            <span>{{ $t('app.agents_section') }}</span>
+            <span>{{ perspectiveOpen ? '▲' : '▼' }}</span>
+          </button>
+          <div v-if="perspectiveOpen" class="pb-2 max-h-40 overflow-y-auto">
             <button
               v-for="agent in sidebarAgents"
               :key="agent.id"
               @click="store.selectAgent(agent.id)"
               :class="[
-                'w-full flex items-center gap-2 px-4 py-2 text-left transition hover:bg-gray-50 dark:hover:bg-gray-700',
-                store.selectedAgentId === agent.id
-                  ? 'bg-indigo-50 dark:bg-indigo-900/30'
-                  : '',
+                'w-full flex items-center gap-2 px-4 py-1.5 text-left transition hover:bg-gray-50 dark:hover:bg-gray-700',
+                store.selectedAgentId === agent.id ? 'bg-indigo-50 dark:bg-indigo-900/30' : '',
               ]"
             >
-              <!-- Status dot -->
-              <span
-                class="w-2 h-2 rounded-full flex-shrink-0"
-                :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300 dark:bg-gray-500'"
-              ></span>
-              <div class="min-w-0 flex-1">
-                <div class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate flex items-center gap-1">
-                  <span>{{ agent.name || agent.id.slice(0, 8) }}</span>
-                  <span v-if="agent.type === 'human'" class="text-blue-300 text-xs">👤</span>
-                </div>
-              </div>
-              <!-- Selected indicator -->
-              <span
-                v-if="store.selectedAgentId === agent.id"
-                class="text-xs text-indigo-500 flex-shrink-0"
-              >✓</span>
+              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300'"></span>
+              <span class="text-xs text-gray-600 dark:text-gray-400 truncate flex-1">{{ agent.name || agent.id.slice(0, 8) }}</span>
+              <span v-if="store.selectedAgentId === agent.id" class="text-xs text-indigo-500">✓</span>
             </button>
-            <!-- Deselect -->
-            <button
-              v-if="store.selectedAgentId"
-              @click="store.selectAgent(store.selectedAgentId)"
-              class="w-full text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 px-4 py-1.5 text-center transition"
-            >
+            <button v-if="store.selectedAgentId" @click="store.selectAgent(store.selectedAgentId)"
+              class="w-full text-xs text-gray-400 hover:text-gray-600 px-4 py-1 text-center transition">
               {{ $t('app.cancel_perspective') }}
             </button>
           </div>
@@ -223,12 +244,9 @@
         </section>
 
         <!-- DMs — fills height -->
-        <section v-else-if="active === 'dm'" class="flex-1 min-h-0 flex flex-col sm:p-6 p-0">
-          <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 flex-shrink-0">
-            {{ $t('app.private_messages') }}
-          </h2>
+        <section v-else-if="active === 'dm'" class="flex-1 min-h-0 flex flex-col sm:p-0 p-0">
           <div class="flex-1 min-h-0">
-            <DMView class="h-full" />
+            <DMView class="h-full" :initial-partner-id="dmTargetId" />
           </div>
         </section>
 
@@ -275,6 +293,13 @@ const { theme, toggleTheme } = useTheme()
 const store = usePincerStore()
 const configured = ref(isConfigured())
 const active = ref(localStorage.getItem('pincer_active_tab') || 'room')
+const perspectiveOpen = ref(false)  // 切换视角 collapse state
+const dmTargetId = ref('')  // which agent DM is selected in sidebar
+
+function selectAgentDM(agent) {
+  dmTargetId.value = agent.id
+  active.value = 'dm'
+}
 
 watch(active, (val) => {
   localStorage.setItem('pincer_active_tab', val)
@@ -284,7 +309,6 @@ watch(active, (val) => {
 
 const navItems = computed(() => [
   { key: 'room',     icon: '💬', label: t('nav.room'),     badge: store.messages.length },
-  { key: 'dm',       icon: '📩', label: t('nav.dm') },
   { key: 'tasks',    icon: '📋', label: t('nav.tasks'),    badge: filteredTaskCount.value },
   { key: 'projects', icon: '📁', label: t('nav.projects') },
   { key: 'reports',  icon: '📊', label: t('nav.reports') },

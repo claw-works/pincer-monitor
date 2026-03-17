@@ -15,7 +15,9 @@
     "cancel_perspective": "取消视角选择",
     "room_messages": "公共频道消息",
     "profile_settings": "身份设置",
-    "private_messages": "私信"
+    "private_messages": "私信",
+    "messages_section": "信息",
+    "room_name": "议事厅"
   },
   "nav": {
     "room": "公共频道",

@@ -117,10 +117,14 @@
         class="absolute bottom-full mb-1 left-0 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg z-20 overflow-hidden"
       >
         <button
-          v-for="agent in mentionList"
+          v-for="(agent, idx) in mentionList"
           :key="agent.id"
           @mousedown.prevent="insertMention(agent)"
-          class="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-left text-sm"
+          @mouseover="mentionIndex = idx"
+          :class="[
+            'w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition',
+            mentionIndex === idx ? 'bg-indigo-50 dark:bg-indigo-900/30' : 'hover:bg-indigo-50 dark:hover:bg-indigo-900/30'
+          ]"
         >
           <span v-if="agent.id === '__all__'" class="text-xs">📢</span>
           <span v-else-if="agent.type === 'human'" class="text-blue-400 text-xs">👤</span>
@@ -133,8 +137,10 @@
           ref="chatInputEl"
           v-model="inputText"
           @input="onInput"
-          @keydown.escape="mentionList = []"
-          @keydown.tab.prevent="mentionList.length && insertMention(mentionList[0])"
+          @keydown.escape="mentionList = []; mentionIndex = -1"
+          @keydown.tab.prevent="mentionList.length && insertMention(mentionList[mentionIndex >= 0 ? mentionIndex : 0])"
+          @keydown.up.prevent="mentionList.length && (mentionIndex = mentionIndex <= 0 ? mentionList.length - 1 : mentionIndex - 1)"
+          @keydown.down.prevent="mentionList.length && (mentionIndex = mentionIndex >= mentionList.length - 1 ? 0 : mentionIndex + 1)"
           @keydown.enter.exact="onEnterKey"
           @keydown.shift.enter.exact.prevent="inputText += '\n'"
           @compositionstart="isComposing = true"
@@ -296,10 +302,21 @@ const isComposing = ref(false)  // IME composition state
 
 function onEnterKey(e) {
   if (isComposing.value) return  // Don't send during CJK composition
+  // If mention dropdown open and item selected, insert mention
+  if (mentionList.value.length) {
+    e.preventDefault()
+    const idx = mentionIndex.value >= 0 ? mentionIndex.value : 0
+    insertMention(mentionList.value[idx])
+    return
+  }
   e.preventDefault()
   sendMessage()
 }
 const mentionList = ref([])
+const mentionIndex = ref(-1)  // keyboard navigation index in mention dropdown
+
+// Reset index when list changes
+watch(mentionList, () => { mentionIndex.value = -1 })
 
 watch(inputText, (val) => localStorage.setItem(DRAFT_KEY, val))
 
@@ -318,7 +335,7 @@ function onInput(e) {
   if (query.includes(' ')) { mentionList.value = []; return }
   const agentMatches = store.agents
     .filter(a => (a.name || a.id).toLowerCase().includes(query))
-    .slice(0, 5)
+    .slice(0, 10)
   const allMatch = 'all'.includes(query) || '所有人'.includes(query)
   mentionList.value = allMatch ? [allMentionEntry.value, ...agentMatches] : agentMatches
 }

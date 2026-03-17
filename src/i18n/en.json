@@ -15,7 +15,9 @@
     "cancel_perspective": "Clear perspective",
     "room_messages": "Room Messages",
     "profile_settings": "Profile Settings",
-    "private_messages": "Private Messages"
+    "private_messages": "Private Messages",
+    "messages_section": "Messages",
+    "room_name": "Room"
   },
   "nav": {
     "room": "Room",

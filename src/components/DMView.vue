@@ -1,49 +1,5 @@
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-xl shadow flex h-full overflow-hidden">
-
-    <!-- Left: 选择器 + 伙伴列表 -->
-    <div class="w-52 border-r border-gray-100 dark:border-gray-700 flex flex-col flex-shrink-0">
-
-      <!-- Current identity (read-only, controlled by global perspective switcher) -->
-      <div class="px-3 py-2 border-b border-gray-100 dark:border-gray-700 flex-shrink-0 flex items-center gap-2">
-        <span class="text-xs text-gray-400">{{ $t('dm.perspective') }}</span>
-        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
-          {{ agentAId ? (isHumanSender ? '👤 ' : '🐾 ') + agentName(agentAId) : $t('dm.not_selected') }}
-        </span>
-      </div>
-
-      <!-- Partner list (Agent B) -->
-      <div class="px-3 py-2 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-        <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">{{ $t('dm.contacts_title') }}</div>
-      </div>
-      <div class="flex-1 overflow-y-auto">
-        <div v-if="partnerList.length === 0" class="text-xs text-gray-400 italic px-4 py-4">{{ $t('dm.no_agents') }}</div>
-        <template v-for="agent in partnerList" :key="agent.id">
-          <button
-            @click="selectedPartnerId = agent.id"
-            :class="[
-              'w-full flex items-center gap-2.5 px-3 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition',
-              selectedPartnerId === agent.id ? 'bg-indigo-50 dark:bg-indigo-900/30 border-r-2 border-indigo-500' : '',
-            ]"
-          >
-            <div :class="['w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0', avatarColor(agent.id)]">
-              {{ (agent.name || agent.id).charAt(0).toUpperCase() }}
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate flex items-center gap-1">
-                <span>{{ agent.name || agent.id.slice(0, 8) }}</span>
-                <span v-if="agent.type === 'human'" class="text-xs text-blue-400">👤</span>
-                <span v-else class="text-xs text-gray-300">🐾</span>
-              </div>
-              <div class="text-xs mt-0.5">
-                <span :class="agent.status === 'online' ? 'text-green-500' : 'text-gray-300 dark:text-gray-500'">●</span>
-                <span class="text-gray-400 ml-1">{{ agent.status || 'offline' }}</span>
-              </div>
-            </div>
-          </button>
-        </template>
-      </div>
-    </div>
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow flex flex-col h-full overflow-hidden">
 
     <!-- Right: 消息区 -->
     <div class="flex-1 flex flex-col min-w-0">
@@ -176,6 +132,10 @@ import { useI18n } from 'vue-i18n'
 import { usePincerStore } from '../stores/pincer'
 import { fetchConversation, sendDM, searchDMMessages } from '../api'
 
+const props = defineProps({
+  initialPartnerId: { type: String, default: '' }
+})
+
 const { t } = useI18n()
 const store = usePincerStore()
 
@@ -184,7 +144,10 @@ const agentAId = ref(store.selectedAgentId || store.humanAgentId || '')
 watch(() => store.humanAgentId, (id) => { if (!agentAId.value && id) agentAId.value = id })
 watch(() => store.selectedAgentId, (id) => { agentAId.value = id || store.humanAgentId || '' })
 
-const selectedPartnerId = ref(null)
+const selectedPartnerId = ref(props.initialPartnerId || null)
+// Watch for parent navigation (clicking different agent in sidebar)
+watch(() => props.initialPartnerId, (id) => { if (id) selectedPartnerId.value = id })
+
 const convoEl = ref(null)
 // DM draft: persist per conversation pair
 function draftKey(a, b) {
