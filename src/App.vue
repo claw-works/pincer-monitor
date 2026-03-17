@@ -178,6 +178,7 @@
             @click="active = item.key; sidebarOpen = false"
             :class="[
               'flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg mx-2 transition text-left',
+              item.desktopOnly ? 'hidden sm:flex' : 'flex',
               active === item.key
                 ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
@@ -286,21 +287,6 @@
     </div>
 
     <!-- Mobile bottom tab bar (sm: hidden) -->
-    <nav class="sm:hidden flex items-stretch bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 safe-area-pb">
-      <button
-        v-for="item in navItems"
-        :key="item.key"
-        @click="active = item.key; sidebarOpen = false"
-        class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs relative transition"
-        :class="active === item.key ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'"
-      >
-        <span class="text-lg leading-none">{{ item.icon }}</span>
-        <span class="text-[10px] font-medium">{{ item.label }}</span>
-        <span v-if="item.badge" class="absolute top-1 right-1/4 bg-red-400 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-          {{ item.badge > 99 ? '99+' : item.badge }}
-        </span>
-      </button>
-    </nav>
   </div>
 </template>
 
@@ -344,7 +330,7 @@ watch(active, (val) => {
 const navItems = computed(() => [
   { key: 'room',     icon: '💬', label: t('nav.room'),     badge: store.messages.length },
   { key: 'tasks',    icon: '📋', label: t('nav.tasks'),    badge: filteredTaskCount.value },
-  { key: 'projects', icon: '📁', label: t('nav.projects') },
+  { key: 'projects', icon: '📁', label: t('nav.projects'), desktopOnly: true },
   { key: 'reports',  icon: '📊', label: t('nav.reports') },
 ])
 
