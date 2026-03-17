@@ -18,7 +18,8 @@
     "private_messages": "Private Messages",
     "messages_section": "Messages",
     "room_name": "Room",
-    "perspective_section": "Perspectives"
+    "perspective_section": "Perspectives",
+    "my_perspective": "My Perspective"
   },
   "nav": {
     "room": "Room",

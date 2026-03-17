@@ -204,7 +204,21 @@
             <span>{{ $t('app.perspective_section') }}</span>
             <span>{{ perspectiveOpen ? '▲' : '▼' }}</span>
           </button>
-          <div v-if="perspectiveOpen" class="pb-2 max-h-40 overflow-y-auto">
+          <div v-if="perspectiveOpen" class="pb-2 max-h-48 overflow-y-auto">
+            <!-- 我的视角 (always at top, clears perspective) -->
+            <button
+              @click="store.selectAgent('')"
+              :class="[
+                'w-full flex items-center gap-2 px-4 py-1.5 text-left transition hover:bg-gray-50 dark:hover:bg-gray-700',
+                !store.selectedAgentId ? 'bg-indigo-50 dark:bg-indigo-900/30' : '',
+              ]"
+            >
+              <span class="text-xs flex-shrink-0">👤</span>
+              <span class="text-xs text-gray-600 dark:text-gray-400 truncate flex-1">{{ $t('app.my_perspective') }}</span>
+              <span v-if="!store.selectedAgentId" class="text-xs text-indigo-500">✓</span>
+            </button>
+            <div class="mx-4 border-t border-gray-100 dark:border-gray-700 my-1"></div>
+            <!-- Agent list -->
             <button
               v-for="agent in aiAgents"
               :key="agent.id"
@@ -214,18 +228,9 @@
                 store.selectedAgentId === agent.id ? 'bg-indigo-50 dark:bg-indigo-900/30' : '',
               ]"
             >
-              <template v-if="agent.type === 'human'">
-                <span class="text-xs flex-shrink-0">👤</span>
-              </template>
-              <template v-else>
-                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300'"></span>
-              </template>
+              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300'"></span>
               <span class="text-xs text-gray-600 dark:text-gray-400 truncate flex-1">{{ agent.name || agent.id.slice(0, 8) }}</span>
               <span v-if="store.selectedAgentId === agent.id" class="text-xs text-indigo-500">✓</span>
-            </button>
-            <button v-if="store.selectedAgentId" @click="store.selectAgent(store.selectedAgentId)"
-              class="w-full text-xs text-gray-400 hover:text-gray-600 px-4 py-1 text-center transition">
-              {{ $t('app.cancel_perspective') }}
             </button>
           </div>
         </div>
