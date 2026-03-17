@@ -214,14 +214,9 @@ const isAiPerspective = computed(() => {
   return agent?.type !== 'human'
 })
 
-// Effective room sender: selected human perspective, or fallback to registered human
-const currentRoomSender = computed(() => {
-  if (store.selectedAgentId) {
-    const agent = store.agents.find(a => a.id === store.selectedAgentId)
-    return agent?.type === 'human' ? store.selectedAgentId : null
-  }
-  return store.humanAgentId || null
-})
+// Effective room sender: ALWAYS use the registered human identity, never follow perspective
+// (perspective/视角 only affects which agent's messages you view, not who you send as)
+const currentRoomSender = computed(() => store.humanAgentId || null)
 
 const sorted = computed(() =>
   [...store.messages].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))

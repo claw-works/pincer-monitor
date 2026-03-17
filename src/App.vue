@@ -158,11 +158,16 @@
                 active === 'dm' && dmTargetId === agent.id ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''
               ]"
             >
-              <span class="w-2 h-2 rounded-full flex-shrink-0" :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300 dark:bg-gray-500'"></span>
+              <!-- Human: show 👤 icon; Agent: show online/offline dot -->
+              <template v-if="agent.type === 'human'">
+                <span class="text-sm flex-shrink-0">👤</span>
+              </template>
+              <template v-else>
+                <span class="w-2 h-2 rounded-full flex-shrink-0" :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300 dark:bg-gray-500'"></span>
+              </template>
               <div class="min-w-0 flex-1">
                 <span class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate block">{{ agent.name || agent.id.slice(0, 8) }}</span>
               </div>
-              <span v-if="agent.type === 'human'" class="text-blue-300 text-xs flex-shrink-0">👤</span>
             </button>
           </div>
         </div>
@@ -186,7 +191,12 @@
                 store.selectedAgentId === agent.id ? 'bg-indigo-50 dark:bg-indigo-900/30' : '',
               ]"
             >
-              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300'"></span>
+              <template v-if="agent.type === 'human'">
+                <span class="text-xs flex-shrink-0">👤</span>
+              </template>
+              <template v-else>
+                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300'"></span>
+              </template>
               <span class="text-xs text-gray-600 dark:text-gray-400 truncate flex-1">{{ agent.name || agent.id.slice(0, 8) }}</span>
               <span v-if="store.selectedAgentId === agent.id" class="text-xs text-indigo-500">✓</span>
             </button>
