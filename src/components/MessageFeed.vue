@@ -439,12 +439,23 @@ async function sendMessage() {
   sending.value = true
   mentionList.value = []
   try {
-    await sendRoomMessage(effectiveRoomId(), sender, text)
+    const sent = await sendRoomMessage(effectiveRoomId(), sender, text)
     inputText.value = ''
     localStorage.removeItem(DRAFT_KEY)
-    // Refresh to pick up the sent message if WS hasn't pushed it yet,
-    // then explicitly scroll to bottom regardless of whether length changed.
-    await store.refreshMessages()
+    const rid = effectiveRoomId()
+    if (rid && rid !== getRoomId()) {
+      // Project room: append sent message immediately, WS will dedup
+      if (sent?.id) {
+        projectMessages.value = [...projectMessages.value.filter(m => m.id !== sent.id), sent]
+          .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      } else {
+        // Fallback: reload
+        await loadProjectMessages()
+      }
+    } else {
+      // Default room: use store refresh (WS backup)
+      await store.refreshMessages()
+    }
     await nextTick()
     scrollToBottom()
   } catch (e) {

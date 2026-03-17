@@ -130,9 +130,14 @@
 
         <!-- 项目群 section: 议事厅 + project rooms -->
         <div class="border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
-          <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-            {{ $t('app.group_section') }}
-          </div>
+          <button
+            @click="groupOpen = !groupOpen; saveCollapse('groupOpen', groupOpen)"
+            class="w-full flex items-center justify-between px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+          >
+            <span>{{ $t('app.group_section') }}</span>
+            <span>{{ groupOpen ? '▲' : '▼' }}</span>
+          </button>
+          <template v-if="groupOpen">
           <!-- 议事厅 -->
           <button
             @click="active = 'room'; sidebarOpen = false"
@@ -159,14 +164,19 @@
             <span class="text-sm flex-shrink-0">📁</span>
             <span class="text-xs font-medium truncate hidden sm:block">{{ project.name }}</span>
           </button>
+          </template>
         </div>
 
-        <!-- 伙伴 section: humans + agents (DM) -->
+<!-- 伙伴 section: humans + agents (DM) -->
         <div class="border-t border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden" style="min-height: 0; flex: 1 1 0;">
-          <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide flex-shrink-0">
-            {{ $t('app.partners_section') }}
-          </div>
-          <div class="overflow-y-auto flex-1 pb-2">
+          <button
+            @click="partnersOpen = !partnersOpen; saveCollapse('partnersOpen', partnersOpen)"
+            class="w-full flex items-center justify-between px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide hover:bg-gray-50 dark:hover:bg-gray-700 transition flex-shrink-0"
+          >
+            <span>{{ $t('app.partners_section') }}</span>
+            <span>{{ partnersOpen ? '▲' : '▼' }}</span>
+          </button>
+          <div v-if="partnersOpen" class="overflow-y-auto flex-1 pb-2">
             <button
               v-for="agent in sidebarAgents"
               :key="agent.id + '_dm'"
@@ -341,6 +351,12 @@ const store = usePincerStore()
 const configured = ref(isConfigured())
 const active = ref(localStorage.getItem('pincer_active_tab') || 'room')
 const perspectiveOpen = ref(false)  // 切换视角 collapse state
+const groupOpen = ref(localStorage.getItem('sidebar_groupOpen') !== 'false')  // 项目群
+const partnersOpen = ref(localStorage.getItem('sidebar_partnersOpen') !== 'false')  // 伙伴
+
+function saveCollapse(key, val) {
+  localStorage.setItem('sidebar_' + key, String(val))
+}
 const dmTargetId = ref('')  // which agent DM is selected in sidebar
 const sidebarOpen = ref(false)  // mobile drawer state
 const activeProjectId = ref('')  // which project room is active
