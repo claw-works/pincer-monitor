@@ -91,16 +91,8 @@
     </div>  <!-- end normal message list -->
     <!-- Chat input / perspective indicator -->
     <div class="mt-3 relative">
-      <!-- AI perspective: read-only notice -->
-      <div
-        v-if="isAiPerspective"
-        class="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-xl px-3 py-2 text-center"
-      >
-        🐾 {{ $t('feed.perspective_readonly', { name: store.selectedAgent?.name || store.selectedAgent?.id?.slice(0,8) }) }}
-      </div>
-
       <!-- No identity: prompt setup -->
-      <div v-else-if="!currentRoomSender" class="mt-0">
+      <div v-if="!currentRoomSender" class="mt-0">
         <button
           @click="$emit('need-profile')"
           class="w-full text-xs text-indigo-500 hover:text-indigo-700 border border-dashed border-indigo-200 dark:border-indigo-700 hover:border-indigo-400 rounded-xl py-2 transition"
@@ -110,7 +102,7 @@
       </div>
 
       <!-- Human sender: show input -->
-      <div v-else class="relative px-4 sm:px-0 pb-3 sm:pb-0">
+      <div v-if="currentRoomSender" class="relative px-4 sm:px-0 pb-3 sm:pb-0">
       <!-- @mention dropdown -->
       <div
         v-if="mentionList.length"
