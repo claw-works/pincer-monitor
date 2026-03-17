@@ -163,17 +163,27 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, nextTick, onMounted } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import { usePincerStore } from '../stores/pincer'
-import { sendRoomMessage, searchRoomMessages } from '../api'
+import { sendRoomMessage, searchRoomMessages, fetchMessages } from '../api'
 import { getRoomId } from '../config'
 
+// Accept optional roomId prop for project rooms
+const props = defineProps({
+  roomId: { type: String, default: '' }
+})
+
 const { t } = useI18n()
+
+// Effective room ID: prop takes precedence over config
+function effectiveRoomId() {
+  return props.roomId || getRoomId()
+}
 
 // Configure marked with syntax highlighting
 marked.setOptions({
@@ -210,8 +220,45 @@ const isAiPerspective = computed(() => {
 // (perspective/视角 only affects which agent's messages you view, not who you send as)
 const currentRoomSender = computed(() => store.humanAgentId || null)
 
+// Project room messages (separate from store for non-default rooms)
+const projectMessages = ref([])
+const projectMsgLoading = ref(false)
+
+async function loadProjectMessages() {
+  const rid = effectiveRoomId()
+  if (!rid || rid === getRoomId()) return  // default room uses store.messages
+  projectMsgLoading.value = true
+  try {
+    const msgs = await fetchMessages(rid, { limit: 50 })
+    projectMessages.value = Array.isArray(msgs) ? [...msgs].reverse() : []
+  } catch (e) { /* ignore */ } finally {
+    projectMsgLoading.value = false
+  }
+}
+
+// Load project room messages when component mounts or roomId changes
+watch(() => props.roomId, () => { projectMessages.value = []; loadProjectMessages() })
+onMounted(() => { loadProjectMessages() })
+
+// Poll project room messages (3s)
+let projectPollTimer = null
+watch(() => props.roomId, (rid) => {
+  if (projectPollTimer) clearInterval(projectPollTimer)
+  if (rid && rid !== getRoomId()) {
+    projectPollTimer = setInterval(loadProjectMessages, 3000)
+  }
+}, { immediate: true })
+onUnmounted(() => { if (projectPollTimer) clearInterval(projectPollTimer) })
+
+// Use project messages if in project room, otherwise store messages
+const activeMessages = computed(() => {
+  const rid = effectiveRoomId()
+  if (rid && rid !== getRoomId()) return projectMessages.value
+  return store.messages
+})
+
 const sorted = computed(() =>
-  [...store.messages].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  [...activeMessages.value].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
 )
 
 const agentNameMap = computed(() => {
@@ -232,7 +279,7 @@ onMounted(async () => {
 // Watch the id of the last message so we scroll whether the change comes from
 // WS push, HTTP poll, or an outgoing message being appended.
 const lastMsgId = computed(() => {
-  const msgs = store.messages
+  const msgs = activeMessages.value
   return msgs.length ? msgs[msgs.length - 1].id : null
 })
 watch(lastMsgId, async () => {
@@ -354,7 +401,7 @@ async function sendMessage() {
   sending.value = true
   mentionList.value = []
   try {
-    await sendRoomMessage(getRoomId(), sender, text)
+    await sendRoomMessage(effectiveRoomId(), sender, text)
     inputText.value = ''
     localStorage.removeItem(DRAFT_KEY)
     // Refresh to pick up the sent message if WS hasn't pushed it yet,
@@ -386,7 +433,7 @@ async function doSearch() {
   searchOffset.value = 0
   searchResults.value = []
   try {
-    const data = await searchRoomMessages(getRoomId(), q, { limit: SEARCH_LIMIT, offset: 0 })
+    const data = await searchRoomMessages(effectiveRoomId(), q, { limit: SEARCH_LIMIT, offset: 0 })
     searchResults.value = data.items || []
     searchTotal.value = data.total || 0
   } finally {
@@ -400,7 +447,7 @@ async function loadMoreSearch() {
   searchLoading.value = true
   try {
     const nextOffset = searchOffset.value + SEARCH_LIMIT
-    const data = await searchRoomMessages(getRoomId(), q, { limit: SEARCH_LIMIT, offset: nextOffset })
+    const data = await searchRoomMessages(effectiveRoomId(), q, { limit: SEARCH_LIMIT, offset: nextOffset })
     searchResults.value = [...(searchResults.value || []), ...(data.items || [])]
     searchTotal.value = data.total || 0
     searchOffset.value = nextOffset

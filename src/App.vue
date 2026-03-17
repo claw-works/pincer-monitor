@@ -145,6 +145,22 @@
             <span>💬</span><span>{{ $t('app.room_name') }}</span>
             <span v-if="store.messages.length > 0" class="ml-auto text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 px-1.5 py-0.5 rounded-full">{{ store.messages.length }}</span>
           </button>
+          <!-- Project rooms -->
+          <button
+            v-for="project in projectsWithRoom"
+            :key="project.id"
+            @click="selectProjectRoom(project); sidebarOpen = false"
+            :class="[
+              'flex items-center gap-2 px-4 py-2 text-sm text-left transition mx-2 rounded-lg',
+              active === 'project_room' && activeProjectId === project.id
+                ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+            ]"
+          >
+            <span class="text-sm flex-shrink-0">📁</span>
+            <span class="text-xs font-medium truncate">{{ project.name }}</span>
+          </button>
+
           <!-- Agent DM list -->
           <div class="overflow-y-auto flex-1 pb-2">
             <button
@@ -249,12 +265,16 @@
         </section>
 
         <!-- Room Messages — fills height -->
-        <section v-else-if="active === 'room'" class="flex-1 min-h-0 flex flex-col sm:p-6 p-0">
-          <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 flex-shrink-0 hidden sm:block px-4 sm:px-0 pt-4 sm:pt-0">
+        <section v-else-if="active === 'room' || active === 'project_room'" class="flex-1 min-h-0 flex flex-col sm:p-6 p-0">
+          <h2 v-if="active === 'project_room' && activeProject"
+            class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 flex-shrink-0 hidden sm:block px-4 sm:px-0 pt-4 sm:pt-0">
+            📁 {{ activeProject.name }}
+          </h2>
+          <h2 v-else class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 flex-shrink-0 hidden sm:block px-4 sm:px-0 pt-4 sm:pt-0">
             {{ $t('app.room_messages') }}
           </h2>
           <div class="flex-1 min-h-0">
-            <MessageFeed class="h-full" @need-profile="active = 'profile'" />
+            <MessageFeed :key="currentRoomId" :room-id="currentRoomId" class="h-full" @need-profile="active = 'profile'" />
           </div>
         </section>
 
@@ -299,7 +319,8 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePincerStore } from './stores/pincer'
-import { isConfigured, clearConfig, getHumanName } from './config'
+import { isConfigured, clearConfig, getHumanName, getRoomId } from './config'
+import { fetchProjects } from './api'
 import { useTheme } from './composables/useTheme'
 import AgentCards from './components/AgentCards.vue'
 import MessageFeed from './components/MessageFeed.vue'
@@ -319,6 +340,38 @@ const active = ref(localStorage.getItem('pincer_active_tab') || 'room')
 const perspectiveOpen = ref(false)  // 切换视角 collapse state
 const dmTargetId = ref('')  // which agent DM is selected in sidebar
 const sidebarOpen = ref(false)  // mobile drawer state
+const activeProjectId = ref('')  // which project room is active
+const allProjects = ref([])  // projects list (fetched at startup)
+
+// Load projects at startup
+onMounted(() => {
+  fetchProjects().then(data => {
+    allProjects.value = Array.isArray(data) ? data : (data.projects || [])
+  }).catch(() => {})
+})
+
+// Projects with room_id for the sidebar
+const projectsWithRoom = computed(() =>
+  allProjects.value.filter(p => p.room_id)
+)
+
+// Active project object
+const activeProject = computed(() =>
+  projectsWithRoom.value.find(p => p.id === activeProjectId.value) || null
+)
+
+// Current room ID: project room or default room
+const currentRoomId = computed(() => {
+  if (active.value === 'project_room' && activeProject.value?.room_id) {
+    return activeProject.value.room_id
+  }
+  return getRoomId()
+})
+
+function selectProjectRoom(project) {
+  activeProjectId.value = project.id
+  active.value = 'project_room'
+}
 
 function selectAgentDM(agent) {
   dmTargetId.value = agent.id
