@@ -201,12 +201,12 @@
             @click="perspectiveOpen = !perspectiveOpen"
             class="w-full flex items-center justify-between px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide hover:bg-gray-50 dark:hover:bg-gray-700 transition"
           >
-            <span>{{ $t('app.agents_section') }}</span>
+            <span>{{ $t('app.perspective_section') }}</span>
             <span>{{ perspectiveOpen ? '▲' : '▼' }}</span>
           </button>
           <div v-if="perspectiveOpen" class="pb-2 max-h-40 overflow-y-auto">
             <button
-              v-for="agent in sidebarAgents"
+              v-for="agent in aiAgents"
               :key="agent.id"
               @click="store.selectAgent(agent.id)"
               :class="[
@@ -328,7 +328,6 @@ watch(active, (val) => {
 })
 
 const navItems = computed(() => [
-  { key: 'room',     icon: '💬', label: t('nav.room'),     badge: store.messages.length },
   { key: 'tasks',    icon: '📋', label: t('nav.tasks'),    badge: filteredTaskCount.value },
   { key: 'projects', icon: '📁', label: t('nav.projects'), desktopOnly: true },
   { key: 'reports',  icon: '📊', label: t('nav.reports') },

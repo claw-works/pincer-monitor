@@ -17,7 +17,8 @@
     "profile_settings": "Profile Settings",
     "private_messages": "Private Messages",
     "messages_section": "Messages",
-    "room_name": "Room"
+    "room_name": "Room",
+    "perspective_section": "Perspectives"
   },
   "nav": {
     "room": "Room",

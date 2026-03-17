@@ -17,7 +17,8 @@
     "profile_settings": "身份设置",
     "private_messages": "私信",
     "messages_section": "信息",
-    "room_name": "议事厅"
+    "room_name": "议事厅",
+    "perspective_section": "视角切换"
   },
   "nav": {
     "room": "公共频道",
