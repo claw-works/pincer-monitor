@@ -185,7 +185,7 @@
             ]"
           >
             <span class="text-base">{{ item.icon }}</span>
-            <span>{{ item.label }}</span>
+            <span class="hidden sm:inline">{{ item.label }}</span>
             <span
               v-if="item.badge !== undefined && item.badge > 0"
               class="ml-auto text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full"
