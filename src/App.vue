@@ -146,7 +146,7 @@
               active === 'room' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
             ]"
           >
-            <span>💬</span><span class="hidden sm:inline">{{ $t('app.room_name') }}</span>
+            <span>💬</span><span>{{ $t('app.room_name') }}</span>
             <span v-if="store.messages.length > 0" class="ml-auto text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 px-1.5 py-0.5 rounded-full">{{ store.messages.length }}</span>
           </button>
           <!-- Project rooms -->
@@ -162,7 +162,7 @@
             ]"
           >
             <span class="text-sm flex-shrink-0">📁</span>
-            <span class="text-xs font-medium truncate hidden sm:block">{{ project.name }}</span>
+            <span class="text-xs font-medium truncate">{{ project.name }}</span>
           </button>
           </template>
         </div>
@@ -192,7 +192,7 @@
               <template v-else>
                 <span class="w-2 h-2 rounded-full flex-shrink-0" :class="agent.status === 'online' ? 'bg-green-400' : 'bg-gray-300 dark:bg-gray-500'"></span>
               </template>
-              <div class="min-w-0 flex-1 hidden sm:block">
+              <div class="min-w-0 flex-1">
                 <span class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate block">{{ agent.name || agent.id.slice(0, 8) }}</span>
               </div>
             </button>
@@ -214,7 +214,7 @@
             ]"
           >
             <span class="text-base">{{ item.icon }}</span>
-            <span class="hidden sm:inline">{{ item.label }}</span>
+            <span>{{ item.label }}</span>
             <span
               v-if="item.badge !== undefined && item.badge > 0"
               class="ml-auto text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full"
