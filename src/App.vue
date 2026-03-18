@@ -19,7 +19,7 @@
           </svg>
         </button>
         <img src="/logo-transparent.png" alt="Pincer" class="w-7 h-7 object-contain" />
-        <h1 class="text-lg font-bold tracking-tight">{{ $t('app.title') }}</h1>
+        <h1 class="text-lg font-bold tracking-tight hidden sm:block">{{ $t('app.title') }}</h1>
         <!-- Current agent indicator -->
         <span
           v-if="store.selectedAgent"
