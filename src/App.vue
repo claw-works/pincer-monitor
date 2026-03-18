@@ -360,14 +360,13 @@ function saveCollapse(key, val) {
 const dmTargetId = ref('')  // which agent DM is selected in sidebar
 const sidebarOpen = ref(false)  // mobile drawer state
 const activeProjectId = ref('')  // which project room is active
-const allProjects = ref([])  // projects list (fetched at startup)
+const allProjects = ref([])  // projects list (fetched after login)
 
-// Load projects at startup
-onMounted(() => {
+function loadProjects() {
   fetchProjects().then(data => {
     allProjects.value = Array.isArray(data) ? data : (data.projects || [])
   }).catch(() => {})
-})
+}
 
 // Projects with room_id for the sidebar
 const projectsWithRoom = computed(() =>
@@ -447,6 +446,7 @@ function switchLocale() {
 function onLoggedIn() {
   configured.value = true
   store.startPolling()
+  loadProjects()  // fetch projects after auth is ready
 }
 
 function logout() {
@@ -456,7 +456,10 @@ function logout() {
 }
 
 onMounted(() => {
-  if (configured.value) store.startPolling()
+  if (configured.value) {
+    store.startPolling()
+    loadProjects()  // already configured (e.g. page refresh) → fetch projects
+  }
 })
 onUnmounted(() => store.stopPolling())
 </script>
