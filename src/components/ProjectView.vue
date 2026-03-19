@@ -76,7 +76,7 @@
 
       <!-- Project meta: repo + overview -->
       <div v-if="selectedProject" class="mb-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600 p-4 space-y-2 text-sm">
-        <div v-if="selectedProject.description" class="text-gray-600 dark:text-gray-400">{{ selectedProject.description }}</div>
+        <div v-if="selectedProject.description" class="markdown-body text-gray-600 dark:text-gray-400" v-html="renderMarkdown(selectedProject.description)"></div>
         <div v-if="selectedProject.repo" class="flex items-center gap-1.5">
           <span class="text-xs text-gray-400 font-semibold uppercase tracking-wide">Repo</span>
           <a :href="selectedProject.repo" target="_blank" class="text-xs text-indigo-500 hover:underline truncate">
