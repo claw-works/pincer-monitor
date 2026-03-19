@@ -30,7 +30,20 @@
       </div>
 
       <!-- Messages (search or normal) -->
-      <div class="flex-1 overflow-y-auto p-4 space-y-3" ref="convoEl">
+      <div
+        class="flex-1 overflow-y-auto p-4 space-y-3"
+        ref="convoEl"
+        @scroll="onConvoScroll"
+      >
+        <!-- Load more indicator -->
+        <div v-if="hasMoreHistory && localMsgs.length" class="flex justify-center py-2 flex-shrink-0">
+          <button
+            v-if="!loadingMore"
+            @click="loadMoreHistory"
+            class="text-xs text-indigo-500 hover:text-indigo-700 border border-indigo-200 dark:border-indigo-700 px-3 py-1 rounded-full transition"
+          >↑ {{ $t('dm.load_more_history') }}</button>
+          <span v-else class="text-xs text-gray-400">{{ $t('dm.loading') }}</span>
+        </div>
         <!-- Search results -->
         <template v-if="dmSearchResults !== null">
           <div v-if="dmSearchLoading" class="text-center text-gray-400 py-8 text-sm">{{ $t('dm.searching') }}</div>
@@ -177,6 +190,9 @@ watch(dmInput, (val) => {
 })
 const dmSending = ref(false)
 const loadingHistory = ref(false)
+const loadingMore = ref(false)
+const hasMoreHistory = ref(true)
+const PAGE_SIZE = 50
 const localMsgs = ref([])
 
 const humanAgents = computed(() => store.agents.filter(a => a.type === 'human'))
@@ -206,12 +222,15 @@ watch([agentAId, selectedPartnerId], ([a, b]) => {
 
 async function loadConversation(a, b) {
   loadingHistory.value = true
+  loadingMore.value = false
+  hasMoreHistory.value = true
   localMsgs.value = []
   try {
-    const msgs = await fetchConversation(a, b)
+    const msgs = await fetchConversation(a, b, { limit: PAGE_SIZE })
     const arr = Array.isArray(msgs) ? msgs : (msgs.messages || [])
     arr.sort((x, y) => new Date(x.created_at) - new Date(y.created_at))
     localMsgs.value = arr
+    if (arr.length < PAGE_SIZE) hasMoreHistory.value = false
   } catch (e) {
     console.warn('Failed to load conversation:', e.message)
   } finally {
@@ -221,12 +240,45 @@ async function loadConversation(a, b) {
   }
 }
 
+async function loadMoreHistory() {
+  if (loadingMore.value || !hasMoreHistory.value) return
+  const a = agentAId.value, b = selectedPartnerId.value
+  if (!a || !b || !localMsgs.value.length) return
+  loadingMore.value = true
+  const oldest = localMsgs.value[0]
+  const scrollEl = convoEl.value
+  const prevScrollHeight = scrollEl?.scrollHeight || 0
+  try {
+    const msgs = await fetchConversation(a, b, { limit: PAGE_SIZE, before: oldest.created_at })
+    const arr = Array.isArray(msgs) ? msgs : (msgs.messages || [])
+    arr.sort((x, y) => new Date(x.created_at) - new Date(y.created_at))
+    if (!arr.length) { hasMoreHistory.value = false; return }
+    // Prepend older messages and restore scroll position
+    localMsgs.value = [...arr, ...localMsgs.value]
+    if (arr.length < PAGE_SIZE) hasMoreHistory.value = false
+    await nextTick()
+    if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight - prevScrollHeight
+  } catch (e) {
+    console.warn('Failed to load more:', e.message)
+  } finally {
+    loadingMore.value = false
+  }
+}
+
 const convoMsgs = computed(() => localMsgs.value)
 
 watch(convoMsgs, async () => { await nextTick(); scrollToBottom() })
 
 function scrollToBottom() {
   if (convoEl.value) convoEl.value.scrollTop = convoEl.value.scrollHeight
+}
+
+function onConvoScroll() {
+  if (!convoEl.value) return
+  // Trigger load more when scrolled to within 40px of top
+  if (convoEl.value.scrollTop < 40 && hasMoreHistory.value && !loadingMore.value) {
+    loadMoreHistory()
+  }
 }
 
 function isMyMsg(msg) { return msg.from_agent_id === agentAId.value }

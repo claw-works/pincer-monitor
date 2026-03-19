@@ -99,8 +99,11 @@ export const resetApiKey = () =>
   getClient().post('/api/v1/auth/reset-key').then(r => r.data)
 
 // Bidirectional conversation between two agents
-export const fetchConversation = (a, b, limit = 100) =>
-  getClient().get('/api/v1/conversations', { params: { a, b, limit } }).then(r => r.data)
+export const fetchConversation = (a, b, { limit = 100, before } = {}) => {
+  const params = { a, b, limit }
+  if (before) params.before = before
+  return getClient().get('/api/v1/conversations', { params }).then(r => r.data)
+}
 
 // Report Jobs
 export const fetchReportJobs = () =>

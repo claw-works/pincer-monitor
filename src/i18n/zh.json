@@ -150,7 +150,8 @@
     "input_placeholder": "发私信…",
     "send": "发送",
     "select_to_send": "选择对话对象后即可发送",
-    "unknown": "未知"
+    "unknown": "未知",
+    "load_more_history": "加载更多历史"
   },
   "profile": {
     "logged_in": "已登录",

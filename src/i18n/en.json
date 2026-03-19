@@ -144,7 +144,8 @@
     "input_placeholder": "Send a message…",
     "send": "Send",
     "select_to_send": "Select a contact to start messaging",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "load_more_history": "Load more history"
   },
   "profile": {
     "logged_in": "Logged in",
