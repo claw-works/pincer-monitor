@@ -53,7 +53,8 @@
       <div
         v-for="msg in sorted"
         :key="msg.id"
-        :class="['flex items-start gap-2', isMine(msg) ? 'flex-row-reverse' : 'flex-row']"
+        :data-msg-id="msg.id"
+        :class="['flex items-start gap-2 group', isMine(msg) ? 'flex-row-reverse' : 'flex-row']"
       >
         <!-- Avatar (others only) -->
         <div
@@ -74,6 +75,16 @@
           <!-- Time only for mine -->
           <div v-else class="text-xs text-gray-400 mb-1">{{ formatTime(msg.created_at) }}</div>
 
+          <!-- Quote card (if this message quotes another) -->
+          <div
+            v-if="msg.quote"
+            class="mb-1 max-w-full border-l-2 border-indigo-400 pl-2 rounded text-xs bg-indigo-50 dark:bg-indigo-900/20 py-1 pr-2 cursor-pointer"
+            @click="scrollToMsg(msg.quote.id)"
+          >
+            <span class="font-semibold text-indigo-500 mr-1">{{ agentName(msg.quote.sender_agent_id) }}</span>
+            <span class="text-gray-500 dark:text-gray-400 truncate">{{ (msg.quote.content || '').slice(0, 80) }}</span>
+          </div>
+
           <!-- Content — markdown rendered -->
           <div
             :class="[
@@ -86,6 +97,12 @@
             ]"
             v-html="renderMd(msg.content)"
           />
+          <!-- Right-click quote button (desktop) -->
+          <button
+            v-if="currentRoomSender"
+            @click="startQuote(msg)"
+            class="mt-0.5 text-[10px] text-gray-300 hover:text-indigo-400 transition opacity-0 group-hover:opacity-100"
+          >↩ 引用</button>
         </div>
       </div>
     </div>  <!-- end normal message list -->
@@ -103,6 +120,18 @@
 
       <!-- Human sender: show input -->
       <div v-if="currentRoomSender" class="relative px-4 sm:px-0 pb-3 sm:pb-0">
+      <!-- Quote preview bar -->
+      <div
+        v-if="quoteMsg"
+        class="flex items-center gap-2 mb-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg px-3 py-1.5"
+      >
+        <div class="flex-1 min-w-0">
+          <span class="text-xs font-semibold text-indigo-500 mr-1">{{ agentName(quoteMsg.sender_agent_id) }}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ (quoteMsg.content || '').slice(0, 80) }}</span>
+        </div>
+        <button @click="clearQuote" class="text-gray-400 hover:text-gray-600 text-sm flex-shrink-0">✕</button>
+      </div>
+
       <!-- @mention dropdown -->
       <div
         v-if="mentionList.length"
@@ -371,6 +400,18 @@ const inputText = ref(localStorage.getItem(DRAFT_KEY) || '')
 const sending = ref(false)
 const chatInputEl = ref(null)
 const isComposing = ref(false)  // IME composition state
+const quoteMsg = ref(null)  // currently-quoted message
+
+function startQuote(msg) {
+  quoteMsg.value = msg
+  nextTick(() => chatInputEl.value?.focus())
+}
+function clearQuote() { quoteMsg.value = null }
+
+function scrollToMsg(id) {
+  const el = document.querySelector(`[data-msg-id="${id}"]`)
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
 
 function onEnterKey(e) {
   if (isComposing.value) return  // Don't send during CJK composition
@@ -439,9 +480,11 @@ async function sendMessage() {
   sending.value = true
   mentionList.value = []
   try {
-    const sent = await sendRoomMessage(effectiveRoomId(), sender, text)
+    const qid = quoteMsg.value?.id || null
+    const sent = await sendRoomMessage(effectiveRoomId(), sender, text, qid)
     inputText.value = ''
     localStorage.removeItem(DRAFT_KEY)
+    clearQuote()
     const rid = effectiveRoomId()
     if (rid && rid !== getRoomId()) {
       // Project room: append sent message immediately, WS will dedup

@@ -39,11 +39,11 @@ export const registerHumanIdentity = (name) =>
   getClient().post('/api/v1/agents/register-human', { name }).then(r => r.data)
 
 // Send room message as human
-export const sendRoomMessage = (roomId, senderAgentId, content) =>
-  getClient().post(`/api/v1/rooms/${roomId}/messages`, {
-    sender_agent_id: senderAgentId,
-    content,
-  }).then(r => r.data)
+export const sendRoomMessage = (roomId, senderAgentId, content, quoteId = null) => {
+  const body = { sender_agent_id: senderAgentId, content }
+  if (quoteId) body.quote_id = quoteId
+  return getClient().post(`/api/v1/rooms/${roomId}/messages`, body).then(r => r.data)
+}
 
 // Send DM
 export const sendDM = (fromAgentId, toAgentId, text) =>
