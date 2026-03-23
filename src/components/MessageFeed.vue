@@ -111,7 +111,7 @@
         <div
           v-for="agent in replyingList"
           :key="agent.id"
-          :title="agent.name + ' 正在回复...'"
+          :title="agent.name + ' ' + getThinkingText(agent.id)"
           class="flex items-center gap-1.5"
         >
           <div :class="['w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold animate-pulse', avatarColor(agent.id)]">
@@ -119,7 +119,7 @@
           </div>
         </div>
         <span class="text-xs text-gray-400 italic">
-          {{ replyingList.map(a => a.name).join('、') }} 正在回复
+          {{ replyingList.map(a => a.name).join('、') }} {{ getThinkingText(replyingList[0]?.id) }}
           <span class="inline-flex gap-0.5 ml-1">
             <span class="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 0ms"></span>
             <span class="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 150ms"></span>
@@ -309,6 +309,25 @@ const replyingList = computed(() => {
   const isProjectRoom = rid && rid !== getRoomId()
   const source = isProjectRoom ? replyingAgents.value : store.replyingAgents
   return Object.entries(source).map(([id, v]) => ({ id, name: v.name }))
+})
+
+const THINKING_TEXTS = [
+  '正在思考', '正在调动资源', '正在施法', '正在翻阅古籍',
+  '正在烧脑', '正在爆炸中', '正在量子计算', '正在冥想',
+  '正在连接宇宙', '正在查阅典籍', '正在高速运转', '正在召唤神龙',
+]
+const _thinkingCache: Record<string, string> = {}
+function getThinkingText(id?: string): string {
+  if (!id) return THINKING_TEXTS[0]
+  if (!_thinkingCache[id]) {
+    _thinkingCache[id] = THINKING_TEXTS[Math.floor(Math.random() * THINKING_TEXTS.length)]
+  }
+  return _thinkingCache[id]
+}
+// Clear cache when agent stops replying
+watch(replyingList, (newVal) => {
+  const activeIds = new Set(newVal.map(a => a.id))
+  Object.keys(_thinkingCache).forEach(id => { if (!activeIds.has(id)) delete _thinkingCache[id] })
 })
 
 // Project room messages (WebSocket, same as default room WS but per-room)
