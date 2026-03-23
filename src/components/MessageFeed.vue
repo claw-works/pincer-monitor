@@ -105,29 +105,30 @@
           >↩ 引用</button>
         </div>
       </div>
-    </div>  <!-- end normal message list -->
 
-    <!-- Agent replying indicators -->
-    <div v-if="replyingList.length" class="flex items-center gap-2 px-4 sm:px-0 py-2">
-      <div
-        v-for="agent in replyingList"
-        :key="agent.id"
-        :title="agent.name + ' 正在回复...'"
-        class="flex items-center gap-1.5"
-      >
-        <div :class="['w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold animate-pulse', avatarColor(agent.id)]">
-          {{ avatarInitial(agent.id) }}
+      <!-- Agent replying indicators (inside scroll area, after last message) -->
+      <div v-if="replyingList.length" class="flex items-center gap-1.5 pt-1 pb-2 px-1">
+        <div
+          v-for="agent in replyingList"
+          :key="agent.id"
+          :title="agent.name + ' 正在回复...'"
+          class="flex items-center gap-1.5"
+        >
+          <div :class="['w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold animate-pulse', avatarColor(agent.id)]">
+            {{ avatarInitial(agent.id) }}
+          </div>
         </div>
-      </div>
-      <span class="text-xs text-gray-400 italic">
-        {{ replyingList.map(a => a.name).join('、') }} 正在回复
-        <span class="inline-flex gap-0.5 ml-1">
-          <span class="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 0ms"></span>
-          <span class="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 150ms"></span>
-          <span class="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 300ms"></span>
+        <span class="text-xs text-gray-400 italic">
+          {{ replyingList.map(a => a.name).join('、') }} 正在回复
+          <span class="inline-flex gap-0.5 ml-1">
+            <span class="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 0ms"></span>
+            <span class="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 150ms"></span>
+            <span class="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 300ms"></span>
+          </span>
         </span>
-      </span>
-    </div>
+      </div>
+
+    </div>  <!-- end normal message list -->
 
     <!-- Chat input / perspective indicator -->
     <div class="mt-3 relative">
