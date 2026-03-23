@@ -316,8 +316,8 @@ const THINKING_TEXTS = [
   '正在烧脑', '正在爆炸中', '正在量子计算', '正在冥想',
   '正在连接宇宙', '正在查阅典籍', '正在高速运转', '正在召唤神龙',
 ]
-const _thinkingCache: Record<string, string> = {}
-function getThinkingText(id?: string): string {
+const _thinkingCache = {}
+function getThinkingText(id) {
   if (!id) return THINKING_TEXTS[0]
   if (!_thinkingCache[id]) {
     _thinkingCache[id] = THINKING_TEXTS[Math.floor(Math.random() * THINKING_TEXTS.length)]
