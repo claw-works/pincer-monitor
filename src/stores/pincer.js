@@ -18,6 +18,9 @@ export const usePincerStore = defineStore('pincer', () => {
   const humanAgentId = ref(getHumanAgentId())
   const isHuman = ref(getIsHuman())
 
+  // Typing/replying indicators: map of agent_id → { name, timer }
+  const replyingAgents = ref({})
+
   // Selected agent for current view perspective
   const selectedAgentId = ref(localStorage.getItem('pincer_selected_agent') || '')
   const selectedAgent = computed(() =>
@@ -213,6 +216,29 @@ export const usePincerStore = defineStore('pincer', () => {
     const { type, data } = event || {}
 
     switch (type) {
+      case 'agent_replying':
+      case 'agent_replying_done': {
+        const agentId = data?.agent_id
+        if (!agentId) break
+        if (type === 'agent_replying') {
+          const agentObj = agents.value.find(a => a.id === agentId)
+          const name = data?.agent_name || agentObj?.name || agentId.slice(0, 8)
+          if (replyingAgents.value[agentId]?.timer) clearTimeout(replyingAgents.value[agentId].timer)
+          const timer = setTimeout(() => {
+            const next = { ...replyingAgents.value }
+            delete next[agentId]
+            replyingAgents.value = next
+          }, 30000)
+          replyingAgents.value = { ...replyingAgents.value, [agentId]: { name, timer } }
+        } else {
+          if (replyingAgents.value[agentId]?.timer) clearTimeout(replyingAgents.value[agentId].timer)
+          const next = { ...replyingAgents.value }
+          delete next[agentId]
+          replyingAgents.value = next
+        }
+        break
+      }
+
       case 'room.message': {
         // Append new message if not duplicate
         const roomId = getRoomId()
@@ -374,6 +400,7 @@ export const usePincerStore = defineStore('pincer', () => {
     wsConnected: wsStatus,
     humanAgentId,
     isHuman,
+    replyingAgents,
     selectedAgentId, selectedAgent, selectAgent,
     activeDmAgentId, openDM,
     dms, addOutgoingDM, mergeDMs,

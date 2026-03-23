@@ -106,6 +106,29 @@
         </div>
       </div>
     </div>  <!-- end normal message list -->
+
+    <!-- Agent replying indicators -->
+    <div v-if="replyingList.length" class="flex items-center gap-2 px-4 sm:px-0 py-2">
+      <div
+        v-for="agent in replyingList"
+        :key="agent.id"
+        :title="agent.name + ' 正在回复...'"
+        class="flex items-center gap-1.5"
+      >
+        <div :class="['w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold animate-pulse', avatarColor(agent.id)]">
+          {{ avatarInitial(agent.id) }}
+        </div>
+      </div>
+      <span class="text-xs text-gray-400 italic">
+        {{ replyingList.map(a => a.name).join('、') }} 正在回复
+        <span class="inline-flex gap-0.5 ml-1">
+          <span class="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 0ms"></span>
+          <span class="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 150ms"></span>
+          <span class="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style="animation-delay: 300ms"></span>
+        </span>
+      </span>
+    </div>
+
     <!-- Chat input / perspective indicator -->
     <div class="mt-3 relative">
       <!-- No identity: prompt setup -->
@@ -249,6 +272,44 @@ const isAiPerspective = computed(() => {
 // (perspective/视角 only affects which agent's messages you view, not who you send as)
 const currentRoomSender = computed(() => store.humanAgentId || null)
 
+// Typing/replying indicators: use store for main room; local for project rooms
+const replyingAgents = ref({})
+
+function handleReplyingEvent(type, payload) {
+  const agentId = payload?.agent_id
+  const agentName = payload?.agent_name || agentName_(agentId)
+  if (!agentId) return
+  if (type === 'agent_replying') {
+    // Clear any existing auto-expiry timer
+    if (replyingAgents.value[agentId]?.timer) clearTimeout(replyingAgents.value[agentId].timer)
+    // Auto-expire after 30s in case done event is missed
+    const timer = setTimeout(() => {
+      const next = { ...replyingAgents.value }
+      delete next[agentId]
+      replyingAgents.value = next
+    }, 30000)
+    replyingAgents.value = { ...replyingAgents.value, [agentId]: { name: agentName, timer } }
+  } else if (type === 'agent_replying_done') {
+    if (replyingAgents.value[agentId]?.timer) clearTimeout(replyingAgents.value[agentId].timer)
+    const next = { ...replyingAgents.value }
+    delete next[agentId]
+    replyingAgents.value = next
+  }
+}
+
+function agentName_(id) {
+  if (!id) return ''
+  return agentNameMap.value[id] || id.slice(0, 8)
+}
+
+// replyingList: merge store (main room) + local (project room)
+const replyingList = computed(() => {
+  const rid = effectiveRoomId()
+  const isProjectRoom = rid && rid !== getRoomId()
+  const source = isProjectRoom ? replyingAgents.value : store.replyingAgents
+  return Object.entries(source).map(([id, v]) => ({ id, name: v.name }))
+})
+
 // Project room messages (WebSocket, same as default room WS but per-room)
 const projectMessages = ref([])
 const projectMsgLoading = ref(false)
@@ -288,8 +349,12 @@ function connectProjectWs(roomId) {
   projectWs.onmessage = (e) => {
     try {
       const envelope = JSON.parse(e.data)
-      if (envelope.type !== 'room.message') return
       const data = envelope.payload ?? envelope.data
+      if (envelope.type === 'agent_replying' || envelope.type === 'agent_replying_done') {
+        handleReplyingEvent(envelope.type, data)
+        return
+      }
+      if (envelope.type !== 'room.message') return
       if (!data?.id) return
       projectMessages.value = [...projectMessages.value.filter(m => m.id !== data.id), data]
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
