@@ -220,6 +220,9 @@ export const usePincerStore = defineStore('pincer', () => {
       case 'agent_replying_done': {
         const agentId = data?.agent_id
         if (!agentId) break
+        // Filter by room_id: ignore events from other rooms
+        const currentRoomId = getRoomId()
+        if (data?.room_id && currentRoomId && data.room_id !== currentRoomId) break
         if (type === 'agent_replying') {
           const agentObj = agents.value.find(a => a.id === agentId)
           const name = data?.agent_name || agentObj?.name || agentId.slice(0, 8)
