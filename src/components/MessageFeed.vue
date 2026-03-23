@@ -420,6 +420,14 @@ watch(lastMsgId, async () => {
   scrollToBottom()
 })
 
+// Scroll to bottom when replying indicators appear
+watch(replyingList, async (newVal) => {
+  if (newVal.length > 0) {
+    await nextTick()
+    scrollToBottom()
+  }
+})
+
 function isMine(msg) {
   const myId = currentRoomSender.value || store.selectedAgentId
   return myId && msg.sender_agent_id === myId
